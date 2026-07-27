@@ -12,7 +12,8 @@ This repository contains my learning journey and practical assignments completed
 ## Structure
 
 - Week 01: Databricks fundamentals and development setup
-- Week 02: Azure Services & Shared Lakehouse setup 
+- Week 02: Azure Services & Shared Lakehouse setup
+- Week 03: Streaming & Incremental Ingestion
 
 ## Purpose
 
