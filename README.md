@@ -14,6 +14,7 @@ This repository contains my learning journey and practical assignments completed
 - Week 01: Databricks fundamentals and development setup
 - Week 02: Azure Services & Shared Lakehouse setup
 - Week 03: Streaming & Incremental Ingestion
+- Week 04: Silver Layer, Data Quality & Schema Evolution
 
 ## Purpose
 
