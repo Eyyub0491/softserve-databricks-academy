@@ -37,17 +37,6 @@ just replace the old value, not spawn a history row, so it's Type 1.
 applied deliberately when a specific, expected schema change happens. A lightweight data
 contract check (in `04`) makes structural drift fail loudly rather than pass silently.
 
-## Done-when checklist
-
-- [x] Silver is deduplicated, with SCD Type 1 and Type 2 both demonstrated via `MERGE`.
-- [x] A new source column (`customer_segment_note`) flows through via controlled schema
-      evolution (`mergeSchema`), without breaking existing rows.
-- [x] Table maintenance configured: `OPTIMIZE`, `VACUUM`, and Liquid Clustering, with the
-      reasoning for choosing clustering keys per table documented inline.
-- [x] Idempotency verified: rerunning each merge with identical input leaves row counts
-      unchanged.
-
-
 ## Running
 
 Each notebook takes a `catalog` widget (default `lab4`). Run in order, `01` → `05` — each
