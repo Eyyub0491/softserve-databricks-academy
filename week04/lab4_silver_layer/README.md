@@ -8,11 +8,12 @@ lightweight data-quality quarantine pattern, and table maintenance.
 
 | # | Notebook | What it does |
 |---|----------|---------------|
-| 01 | `01_bronze_ingestion` | Loads raw customers (CSV) and sales orders (nested JSON) into `bronze` as **raw strings**, with `source`/`ingestion_timestamp` metadata. Rerunnable via `overwrite`. |
-| 02 | `02_silver_customers` | Casts bronze strings to proper types, quarantines rows that fail the merge-key cast, dedupes, and builds an **SCD Type 2** table (full change history via `effective_start`/`effective_end`/`is_current`). |
-| 03 | `03_silver_sales_orders` | Flattens the nested `ordered_products` array into one row per line item, casts every numeric field, quarantines rows with a broken merge key, dedupes, and builds an **SCD Type 1** fact table (corrections just overwrite, no history). |
-| 04 | `04_schema_enforcement_evolution` | Proves Delta rejects a mismatched-schema write by default, then shows the controlled way past it (`mergeSchema`), column widening, Delta column mapping (safe rename/drop), and a simple data-contract check. |
-| 05 | `05_table_maintenance` | `OPTIMIZE`, `VACUUM`, and Liquid Clustering on the Silver tables, with a discussion of the trade-offs vs. `ZORDER` and classic partitioning. |
+| 01 | `01_setup_schema` | Setup notebook. |
+| 02 | `02_bronze_ingestion` | Loads raw customers (CSV) and sales orders (nested JSON) into `bronze` as **raw strings**, with `source`/`ingestion_timestamp` metadata. Rerunnable via `overwrite`. |
+| 03 | `03_silver_customers` | Casts bronze strings to proper types, quarantines rows that fail the merge-key cast, dedupes, and builds an **SCD Type 2** table (full change history via `effective_start`/`effective_end`/`is_current`). |
+| 04 | `04_silver_sales_orders` | Flattens the nested `ordered_products` array into one row per line item, casts every numeric field, quarantines rows with a broken merge key, dedupes, and builds an **SCD Type 1** fact table (corrections just overwrite, no history). |
+| 05 | `05_schema_enforcement_evolution` | Proves Delta rejects a mismatched-schema write by default, then shows the controlled way past it (`mergeSchema`), column widening, Delta column mapping (safe rename/drop), and a simple data-contract check. |
+| 06 | `06_table_maintenance` | `OPTIMIZE`, `VACUUM`, and Liquid Clustering on the Silver tables, with a discussion of the trade-offs vs. `ZORDER` and classic partitioning. |
 
 ## Design decisions
 
