@@ -44,11 +44,13 @@ The notebooks use a catalog widget, with lab4 as the default catalog.
 Run the notebooks through the following pipeline:
 01 → 02 → 03/04 → 05 → 06
 Dependencies:
-- b01_setup_schema prepares the required schemas and objects.
+- 01_setup_schema prepares the required schemas and objects.
 - 02_bronze_ingestion loads the source data into Bronze.
 - 03_silver_customers and 04_silver_sales_orders depend on the Bronze tables created by 02.
 - 05_schema_enforcement_evolution depends on the Silver tables created by 03 and 04.
 - 06_table_maintenance runs after the schema enforcement/evolution stage.
+
 The complete pipeline is also defined as the Databricks job:
 - lab4_silver_data_pipeline
+
 with the tasks executed in the dependency order above.
