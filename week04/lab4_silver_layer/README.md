@@ -8,7 +8,7 @@ lightweight data-quality quarantine pattern, and table maintenance.
 
 | # | Notebook | What it does |
 |---|----------|---------------|
-| 01 | `01_setup_schema` | Setup notebook. |
+| 01 | `01_setup_schema` | Creates and prepares the schemas and required objects used by the Lab 4 pipeline. |
 | 02 | `02_bronze_ingestion` | Loads raw customers (CSV) and sales orders (nested JSON) into `bronze` as **raw strings**, with `source`/`ingestion_timestamp` metadata. Rerunnable via `overwrite`. |
 | 03 | `03_silver_customers` | Casts bronze strings to proper types, quarantines rows that fail the merge-key cast, dedupes, and builds an **SCD Type 2** table (full change history via `effective_start`/`effective_end`/`is_current`). |
 | 04 | `04_silver_sales_orders` | Flattens the nested `ordered_products` array into one row per line item, casts every numeric field, quarantines rows with a broken merge key, dedupes, and builds an **SCD Type 1** fact table (corrections just overwrite, no history). |
@@ -40,6 +40,15 @@ contract check (in `04`) makes structural drift fail loudly rather than pass sil
 
 ## Running
 
-Each notebook takes a `catalog` widget (default `lab4`). Run in order, `01` → `05` — each
-Silver notebook depends on its bronze table already existing, and `04`/`05` depend on
-`03` having created `slv_sales_order_lines`.
+The notebooks use a catalog widget, with lab4 as the default catalog.
+Run the notebooks through the following pipeline:
+01 → 02 → 03/04 → 05 → 06
+Dependencies:
+- b01_setup_schema prepares the required schemas and objects.
+- 02_bronze_ingestion loads the source data into Bronze.
+- 03_silver_customers and 04_silver_sales_orders depend on the Bronze tables created by 02.
+- 05_schema_enforcement_evolution depends on the Silver tables created by 03 and 04.
+- 06_table_maintenance runs after the schema enforcement/evolution stage.
+The complete pipeline is also defined as the Databricks job:
+- lab4_silver_data_pipeline
+with the tasks executed in the dependency order above.
