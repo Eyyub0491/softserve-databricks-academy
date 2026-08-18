@@ -1,0 +1,13 @@
+resources:
+  pipelines:
+    lab5_lakeflow:
+      name: ayyuborujzade_lab5_lakeflow
+
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+
+      libraries:
+        - file:
+            path: ../lab5_bronze/transformations/bronze_pipeline.py
+        - file:
+            path: ../lab5_silver/transformations/silver_pipeline.py

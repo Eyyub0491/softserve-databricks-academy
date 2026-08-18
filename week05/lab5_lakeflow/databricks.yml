@@ -1,0 +1,29 @@
+bundle:
+  name: softserve-databricks-academy-lab5
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    default: lab5
+  bronze_schema:
+    default: bronze
+  silver_schema:
+    default: silver
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-f7231d90-d8a3.cloud.databricks.com
+
+  azure:
+    mode: development
+    workspace:
+      host: https://adb-7405604503619901.1.azuredatabricks.net
+    variables:
+      catalog: dbr_dev
+      bronze_schema: ayyuborujzade_bronze
+      silver_schema: ayyuborujzade_silver
