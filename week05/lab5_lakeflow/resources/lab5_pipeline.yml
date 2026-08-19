@@ -1,26 +1,4 @@
 resources:
-  schemas:
-    bronze_schema:
-      name: ayyuborujzade_bronze
-      catalog_name: dbr_dev
-
-    silver_schema:
-      name: ayyuborujzade_silver
-      catalog_name: dbr_dev
-
-  volumes:
-    customer_landing:
-      name: customer_landing
-      catalog_name: dbr_dev
-      schema_name: ayyuborujzade_bronze
-      volume_type: MANAGED
-
-    checkpoints:
-      name: checkpoints
-      catalog_name: dbr_dev
-      schema_name: ayyuborujzade_bronze
-      volume_type: MANAGED
-
   pipelines:
     lab5_lakeflow:
       name: ayyuborujzade_lab5_lakeflow
