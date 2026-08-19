@@ -17,10 +17,10 @@ def brz_customers():
         .option("cloudFiles.format", "csv") \
         .option(
         "cloudFiles.schemaLocation",
-        "/Volumes/lab5/bronze/checkpoints/customers_schema_landing_v1"
+        "/Volumes/dbr_dev/ayyuborujzade_bronze/checkpoints/customers_schema_landing_v1"
         ) \
         .option("header", "true") \
-        .load("/Volumes/lab5/bronze/customer_landing/")
+        .load("/Volumes/dbr_dev/ayyuborujzade_bronze/customer_landing/")
         .withColumn("source", F.lit("lab5/bronze/customer_landing"))
         .withColumn("ingestion_timestamp", F.current_timestamp())
     )
