@@ -2,15 +2,28 @@ resources:
   pipelines:
     lab5_lakeflow:
       name: ayyuborujzade_lab5_lakeflow
-
-      catalog: dbr_dev
-      schema: ayyuborujzade_silver
-
+      catalog: ${var.source_catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      configuration:
+        source_catalog: ${var.source_catalog}
+        bronze_schema: ${var.bronze_schema}
+        silver_schema: ${var.silver_schema}
       libraries:
-        - file:
-            path: ../lab5_bronze/transformations/bronze_pipeline.py
+        - glob:
+            include: lab5_bronze/transformations/**
+        - glob:
+            include: lab5_silver/transformations/**
 
-        - file:
-            path: ../lab5_silver/transformations/silver_pipeline.py
+  volumes:
+    customer_landing:
+      catalog_name: ${var.source_catalog}
+      schema_name: ${var.bronze_schema}
+      name: customer_landing
+      volume_type: MANAGED
 
-      development: false
+    checkpoints:
+      catalog_name: ${var.source_catalog}
+      schema_name: ${var.bronze_schema}
+      name: checkpoints
+      volume_type: MANAGED
