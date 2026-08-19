@@ -1,8 +1,6 @@
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
-CATALOG = spark.conf.get("catalog")
-BRONZE_SCHEMA = spark.conf.get("bronze_schema")
 
 @dp.table(
     name="brz_customers"
@@ -19,14 +17,11 @@ def brz_customers():
         .option("cloudFiles.format", "csv") \
         .option(
         "cloudFiles.schemaLocation",
-        f"/Volumes/{CATALOG}/{BRONZE_SCHEMA}/checkpoints/customers_schema_landing_v1"
+        "/Volumes/lab5/bronze/checkpoints/customers_schema_landing_v1"
         ) \
         .option("header", "true") \
-        .load(f"/Volumes/{CATALOG}/{BRONZE_SCHEMA}/customer_landing/")
-        .withColumn(
-        "source",
-        F.lit(f"{CATALOG}/{BRONZE_SCHEMA}/customer_landing")
-        )
+        .load("/Volumes/lab5/bronze/customer_landing/")
+        .withColumn("source", F.lit("lab5/bronze/customer_landing"))
         .withColumn("ingestion_timestamp", F.current_timestamp())
     )
 
