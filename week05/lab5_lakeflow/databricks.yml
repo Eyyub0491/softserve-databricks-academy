@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 bundle:
   name: softserve-databricks-academy
 
@@ -25,3 +26,5 @@ targets:
       source_catalog: dbr_dev
       bronze_schema: ayyuborujzade_bronze
       silver_schema: ayyuborujzade_silver
+=======
+>>>>>>> Stashed changes
