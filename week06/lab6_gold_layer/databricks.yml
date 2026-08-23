@@ -1,0 +1,40 @@
+bundle:
+  name: lab6-gold-layer
+
+include:
+  - resources/*.yml
+
+variables:
+  warehouse_id:
+    description: "SQL Warehouse ID for dashboard"
+    default: "7474657415962864"
+
+targets:
+
+  dev:
+    mode: development
+    default: true
+
+    workspace:
+      host: https://dbc-f7231d90-d8a3.cloud.databricks.com
+
+    variables:
+      source_catalog: lab5
+      source_schema: silver
+      target_catalog: lab5
+      target_schema: gold
+      warehouse_id: "7474657415962864"
+
+
+  academy:
+    mode: development
+
+    workspace:
+      host: https://adb-7405604503619901.1.azuredatabricks.net
+
+    variables:
+      source_catalog: dbr_dev
+      source_schema: ayyuborujzade_bronze
+      target_catalog: dbr_dev
+      target_schema: ayyuborujzade_gold
+      warehouse_id: "7474657415962864"

@@ -1,0 +1,32 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "total_orders",
+      "display": "total_orders",
+      "aggregation": "AGGREGATION_UNSPECIFIED"
+    },
+    "comparison_operator": "LESS_THAN",
+    "threshold": {
+      "value": {
+        "double_value": 40.0
+      }
+    },
+    "notification": {
+      "notify_on_ok": true
+    }
+  },
+  "schedule": {
+    "quartz_cron_schedule": "12 35 * * * ?",
+    "timezone_id": "Europe/Warsaw"
+  },
+  "query_lines": [
+    "SELECT",
+    "    order_date,",
+    "    total_orders",
+    "FROM lab5.gold.agg_daily_sales",
+    "WHERE order_date = (",
+    "    SELECT MAX(order_date)",
+    "    FROM lab5.gold.agg_daily_sales",
+    ");"
+  ]
+}
