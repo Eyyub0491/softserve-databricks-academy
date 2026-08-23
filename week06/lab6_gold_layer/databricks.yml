@@ -38,4 +38,5 @@ targets:
 
     variables:
       catalog: dbr_dev
-      gold_schema: ayyuborujzade_gold
+      gold_schema: ayyuborujzade_gold\
+    
