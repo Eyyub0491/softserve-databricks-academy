@@ -90,37 +90,6 @@ The Gold layer consists of:
              └─────────────────────┘     │ unique_customers    │
                                          └─────────────────────┘
 ```
-
----
-
-## Source Data
-
-The Gold layer is built from the existing Lab 5 Silver data.
-
-### Personal / Free Databricks Workspace
-
-```
-lab5.silver.slv_customers_clean
-lab5.silver.slv_customers_history
-lab5.silver.slv_sales_orders_clean
-```
-
-### Academy Databricks Workspace
-
-In the Academy environment, the existing Lab 5 Silver-style tables are stored in the Bronze schema:
-
-```
-dbr_dev.ayyuborujzade_bronze.slv_customers_clean
-dbr_dev.ayyuborujzade_bronze.slv_customers_history
-dbr_dev.ayyuborujzade_bronze.slv_sales_orders_clean
-```
-
-The Academy Gold target schema is:
-
-```
-dbr_dev.ayyuborujzade_gold
-```
-
 ---
 
 ## Notebooks
