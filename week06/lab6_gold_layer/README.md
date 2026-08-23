@@ -2,32 +2,132 @@
 
 ## Overview
 
-This lab builds the Gold layer for the e-commerce data platform using Databricks.
+This lab builds the **Gold layer** of an e-commerce data platform using Databricks.
 
-The Gold layer contains a star schema, business aggregates, governance controls, validation queries, a dashboard, an alert, and a Genie Q&A space.
+The Gold layer transforms the existing Silver data into an analytics-ready star schema, business aggregates, governance controls, validation checks, a business dashboard, an alert, and a Genie Q&A experience.
 
-## Gold Layer
+The implementation follows the **Medallion Architecture**:
+
+```
+Bronze
+   ↓
+Silver
+   ↓
+Gold
+   ↓
+Dashboard / Alert / Genie Q&A
+```
+
+---
+
+## Gold Layer Architecture
+
+The Gold layer consists of:
+
+- **3** dimension tables
+- **1** fact table
+- **2** aggregate tables
 
 ### Dimensions
 
-- `lab5.gold.dim_date` - Date dimension with calendar attributes
-- `lab5.gold.dim_customers` - Customer information and loyalty segments
-- `lab5.gold.dim_products` - Product information and ordering history
+| Table | Description |
+|---|---|
+| `lab5.gold.dim_date` | Date dimension with standard calendar attributes |
+| `lab5.gold.dim_customers` | Customer information, loyalty segments, and SCD Type 2 history |
+| `lab5.gold.dim_products` | Product information and ordering history |
 
 ### Fact
 
-- `lab5.gold.fct_sales_orders` - Sales order line items
+| Table | Description |
+|---|---|
+| `lab5.gold.fct_sales_orders` | Sales order line items with customer, product, date, quantity, and revenue measures |
 
 ### Aggregations
 
-- `lab5.gold.agg_customer_summary` - Customer-level sales and lifetime value metrics
-- `lab5.gold.agg_daily_sales` - Daily order, revenue, quantity, and customer metrics
+| Table | Description |
+|---|---|
+| `lab5.gold.agg_customer_summary` | Customer-level sales and lifetime-value metrics |
+| `lab5.gold.agg_daily_sales` | Daily orders, revenue, quantity, and customer metrics |
+
+---
+
+## Gold Layer Data Model
+
+```
+                         ┌─────────────────┐
+                         │    dim_date     │
+                         │─────────────────│
+                         │ date_key        │
+                         │ full_date       │
+                         │ year            │
+                         │ quarter         │
+                         │ month           │
+                         │ day_of_week     │
+                         └────────┬────────┘
+                                  │
+                                  │ date_key
+                                  ▼
+┌─────────────────┐       ┌─────────────────────┐       ┌─────────────────┐
+│ dim_customers   │       │  fct_sales_orders   │       │  dim_products   │
+│─────────────────│       │─────────────────────│       │─────────────────│
+│ customer_key    │◄──────│ customer_key        │──────►│ product_key     │
+│ customer_id     │       │ product_key         │       │ product_id      │
+│ customer_name   │       │ date_key            │       │ product_name    │
+│ state           │       │ order_id            │       │ first_order_date│
+│ loyalty_segment │       │ quantity            │       │ last_order_date │
+└─────────────────┘       │ revenue             │       └─────────────────┘
+                          └──────────┬──────────┘
+                                     │
+                       ┌─────────────┴─────────────┐
+                       ▼                           ▼
+             ┌─────────────────────┐     ┌─────────────────────┐
+             │ agg_customer_summary│     │   agg_daily_sales   │
+             │─────────────────────│     │─────────────────────│
+             │ customer_key        │     │ date_key            │
+             │ total_orders        │     │ total_orders        │
+             │ total_revenue       │     │ total_revenue       │
+             │ avg_order_value     │     │ total_quantity      │
+             └─────────────────────┘     │ unique_customers    │
+                                         └─────────────────────┘
+```
+
+---
+
+## Source Data
+
+The Gold layer is built from the existing Lab 5 Silver data.
+
+### Personal / Free Databricks Workspace
+
+```
+lab5.silver.slv_customers_clean
+lab5.silver.slv_customers_history
+lab5.silver.slv_sales_orders_clean
+```
+
+### Academy Databricks Workspace
+
+In the Academy environment, the existing Lab 5 Silver-style tables are stored in the Bronze schema:
+
+```
+dbr_dev.ayyuborujzade_bronze.slv_customers_clean
+dbr_dev.ayyuborujzade_bronze.slv_customers_history
+dbr_dev.ayyuborujzade_bronze.slv_sales_orders_clean
+```
+
+The Academy Gold target schema is:
+
+```
+dbr_dev.ayyuborujzade_gold
+```
+
+---
 
 ## Notebooks
 
 ### `01_gold_star_schema`
 
-Creates and validates the Gold star schema:
+Creates the analytics-ready Gold layer:
 
 - Date dimension
 - Customer dimension
@@ -36,59 +136,102 @@ Creates and validates the Gold star schema:
 - Customer summary
 - Daily sales summary
 
+The notebook uses target-specific catalog and schema configuration so that the same project can be deployed to different Databricks environments.
+
 ### `02_governance`
 
-Implements Unity Catalog governance:
+Implements Unity Catalog governance controls:
 
 - Schema permissions
 - Row-level security
-- Column-level masking for `tax_id`
+- Column-level masking
 - Governance validation
+
+The customer dimension uses row-level filtering to restrict visible customer states.
+
+The `tax_id` column is protected with column-level masking for non-admin users.
 
 ### `03_validation`
 
-Performs final checks for:
+Performs final Gold-layer validation, including:
 
 - Dimension row counts
 - Fact table integrity
 - Key completeness
 - Aggregate reconciliation
-- Row-level security
-- Column-level security
+- Date coverage
+- Row-level security validation
+- Column-level security validation
+
+---
+
+## Gold Layer Results
+
+The completed Gold layer in the personal/free workspace contains:
+
+| Table | Rows |
+|---|---|
+| dim_date | 184 |
+| dim_customers | 6,541 |
+| dim_products | 98 |
+| fct_sales_orders | 7,907 |
+| agg_customer_summary | 1,929 |
+| agg_daily_sales | 106 |
+
+These tables provide the foundation for the dashboard, alerting, and Genie Q&A functionality.
+
+---
 
 ## Dashboard
 
-**Lab 6 - Gold Layer Business Analytics**
+### Lab 6 - Gold Layer Business Analytics
 
-The dashboard provides business-level metrics and visualizations including:
+The dashboard provides business-level analytics based on the Gold layer.
+
+Key metrics and visualizations include:
 
 - Total revenue
 - Total orders
 - Customer count
 - Average order value
 - Daily revenue trend
-- Daily orders
+- Daily order volume
 - Revenue by state
 - Top customers by revenue
 - Customers by loyalty segment
+- Revenue by month
+
+**Dashboard Screenshot**
+
+![Dashboard Screenshot](screenshots/dashboard.png)
+
+---
 
 ## Alert
 
-**Lab 6 - Daily Order Volume Drop Alert**
+### Lab 6 - Daily Order Volume Drop Alert
 
-The alert monitors daily order volume from:
+The alert monitors daily order volume using:
 
-`lab5.gold.agg_daily_sales`
+```
+lab5.gold.agg_daily_sales
+```
 
-It is used to identify unusually low daily order volumes.
+The purpose of the alert is to identify unusually low daily order volumes and notify users when the configured threshold is reached.
+
+**Alert Screenshot**
+
+![Alert Screenshot](screenshots/alert.png)
+
+---
 
 ## Genie Q&A
 
-**Lab 6 Gold Layer Business Analytics**
+### Lab 6 Gold Layer Business Analytics
 
-A Genie Q&A space is configured on the Gold layer tables.
+A Databricks Genie Q&A space provides a natural-language interface for exploring the Gold layer.
 
-Users can ask natural-language questions about:
+Users can ask questions about:
 
 - Revenue
 - Orders
@@ -96,51 +239,144 @@ Users can ask natural-language questions about:
 - Products
 - Loyalty segments
 - States
-- Daily sales trends
+- Daily sales
+- Monthly sales
+- Customer performance
+- Product ordering activity
 
-The Genie space uses the Gold tables and their relationships to generate answers without requiring users to write SQL.
+The Genie space is configured with the available Gold tables and their relationships.
+
+#### Example Questions
+
+- What is the total revenue?
+- How many total orders do we have?
+- What is the average order value?
+- Who are the top 10 customers by revenue?
+- What is the daily revenue trend?
+- How many customers are in each state?
+- What is the revenue by loyalty segment?
+- What are the most ordered products?
+- What is the revenue by month?
+- How many unique customers do we have each day?
+
+**Genie Screenshot**
+
+![Genie Screenshot](screenshots/genie.png)
+
+---
+
+## Governance
+
+Unity Catalog is used to implement governance controls across the Gold layer.
+
+### Permissions
+
+Access to the Gold schema and tables is controlled through Unity Catalog permissions.
+
+### Row-Level Security
+
+Customer records can be filtered based on state using a Unity Catalog row filter.
+
+Example business rule:
+
+```
+CA
+NY
+TX
+```
+
+Only records satisfying the configured row-level security policy are visible to the relevant users.
+
+### Column-Level Security
+
+The `tax_id` column is protected using a masking function.
+
+Administrators can view the original value, while other users receive a redacted value:
+
+```
+REDACTED
+```
+
+---
+
+## Validation
+
+The Gold layer is validated using the `03_validation` notebook.
+
+Validation includes:
+
+**Dimensions**
+- Expected row counts
+- Unique keys
+- Null checks
+- Date coverage
+- Attribute completeness
+
+**Fact Table**
+- Foreign-key completeness
+- Customer key validity
+- Product key validity
+- Date key validity
+- Revenue and quantity checks
+
+**Aggregates**
+- Customer-level reconciliation
+- Daily sales reconciliation
+- Revenue consistency
+- Order count consistency
+- Quantity consistency
+
+**Governance**
+- Row-level security validation
+- Column-level masking validation
+- Unity Catalog permission checks
+
+---
 
 ## Technologies
 
 - Databricks
 - Unity Catalog
-- SQL
+- Spark SQL
+- PySpark
 - Delta Lake
 - Lakehouse / Medallion Architecture
+- Databricks Asset Bundles
 - Databricks AI/BI Dashboards
-- Genie Q&A
+- Databricks Genie
 - SQL Alerts
 
-## Data Sources
+---
 
-The Gold layer is built from the existing Silver layer tables:
+## Project Structure
 
-- `lab5.silver.slv_sales_orders_clean`
-- `lab5.silver.slv_customer_dimensions`
-
-## Lab 6 Structure
-
-```text
+```
 lab6_gold_layer/
 │
-├── 01_gold_star_schema
-├── 02_governance
-├── 03_validation
+├── 01_gold_star_schema.py
+├── 02_governance.py
+├── 03_validation.py
 ├── README.md
 │
-├── Dashboard
-│   └── Lab 6 - Gold Layer Business Analytics
+├── screenshots/
+│   ├── dashboard.png
+│   ├── genie.png
+│   └── alert.png
 │
-├── Alert
-│   └── Lab 6 - Daily Order Volume Drop Alert
+├── resources/
+│   ├── lab6_dashboard.yml
+│   └── ...
 │
-└── Genie
-    └── Lab 6 Gold Layer Business Analytics
-``` 
+├── Lab 6 - Gold Layer Business Analytics.lvdash.json
+└── Lab 6 - Daily Order Volume Drop Alert.dbalert.json
+```
 
-## Result
+---
 
-The Lab 6 Gold layer provides analytics-ready data with:
+## Final Result
+
+Lab 6 provides a complete analytics-ready Gold layer containing:
+
 - Star schema modeling
 - Business aggregates
 - Data validation
@@ -148,5 +384,6 @@ The Lab 6 Gold layer provides analytics-ready data with:
 - Row-level security
 - Column-level security
 - Business dashboard
-- Data quality alerting
+- Data-quality / business alerting
 - Natural-language data exploration with Genie
+- Databricks Asset Bundle deployment
