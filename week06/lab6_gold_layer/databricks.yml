@@ -39,4 +39,3 @@ targets:
     variables:
       catalog: dbr_dev
       gold_schema: ayyuborujzade_gold
-      warehouse_id: "7474657415962864"
