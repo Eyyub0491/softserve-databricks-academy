@@ -3,3 +3,5 @@
 
 pytest>=7.4.0
 pytest-cov>=4.1.0
+databricks-sql-connector>=4.0.0
+databricks-sdk>=0.30.0

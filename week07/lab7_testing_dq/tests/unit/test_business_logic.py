@@ -1,13 +1,12 @@
 """Unit tests for business logic transformations."""
 
-import sys
-sys.path.insert(0, '/Workspace/Users/ayyub.orujzada@gmail.com/softserve-databricks-academy/week07/lab7_testing_dq/src')
+from decimal import Decimal
 
 import pytest
-from decimal import Decimal
+
 from transformations.business_logic import (
+    calculate_line_total_with_discount,
     map_loyalty_segment,
-    calculate_line_total_with_discount
 )
 
 
@@ -45,7 +44,26 @@ class TestMapLoyaltySegment:
 
 class TestCalculateLineTotalWithDiscount:
     """Tests for calculate_line_total_with_discount function."""
-    
+
+    def test_batch_of_customer_order_rows(self):
+        """Business-like input rows should map to the expected line totals and discounts."""
+        order_rows = [
+            {"price_cents": 1500, "quantity": 2, "promo_disc_pct": None},
+            {"price_cents": 2500, "quantity": 3, "promo_disc_pct": 0.10},
+            {"price_cents": 999, "quantity": 1, "promo_disc_pct": 0.25},
+        ]
+
+        totals = [
+            calculate_line_total_with_discount(row["price_cents"], row["quantity"], row["promo_disc_pct"])
+            for row in order_rows
+        ]
+
+        assert totals == [
+            (Decimal("30.00"), Decimal("0.00")),
+            (Decimal("75.00"), Decimal("7.50")),
+            (Decimal("9.99"), Decimal("2.50")),
+        ]
+
     def test_no_discount(self):
         """Test calculation with no discount."""
         total, discount = calculate_line_total_with_discount(1500, 2, None)
