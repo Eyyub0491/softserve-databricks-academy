@@ -78,3 +78,48 @@ pytest tests/unit/test_string_utils.py -v
 - Tests can run locally or in CI/CD pipelines
 - Surrogate key generation (SQL HASH) is NOT tested - Python hash() is not reproducible
 - Original Lab 5/6 pipelines remain unchanged
+
+---
+
+## Part B — Local Data Quality Framework
+
+This project now includes a small local DQ framework under `dq/` for generic, pure-Python checks that can later be reused with Spark or Databricks results.
+
+### Included checks
+
+- Completeness: null/empty required fields
+- Uniqueness: duplicate detection for single or composite keys
+- Validity: accepted values and numeric ranges
+- Referential integrity: child key must exist in parent collection
+- Freshness: timestamp must be within a configurable maximum age
+- Reconciliation: row counts and numeric aggregates compared with tolerance
+
+### Structure
+
+```text
+lab7_testing_dq/
+├── dq/
+│   ├── __init__.py
+│   └── checks.py
+├── tests/
+│   └── unit/
+│       └── test_dq_checks.py
+├── src/
+│   └── transformations/
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
+### Running the DQ tests
+
+```bash
+cd week07/lab7_testing_dq
+pytest tests/unit/ -v
+```
+
+### Notes
+
+- These checks are intentionally generic and do not hard-code Lab 5/6 table names.
+- They are designed to be simple, deterministic, and easy to explain during an Academy review.
+- Databricks/Spark-specific execution and table metadata checks remain out of scope for this local-only stage.
