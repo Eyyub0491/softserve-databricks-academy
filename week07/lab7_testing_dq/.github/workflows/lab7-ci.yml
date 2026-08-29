@@ -1,0 +1,45 @@
+name: lab7-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: week07/lab7_testing_dq
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install databricks-cli
+
+      - name: Run unit tests
+        run: python -m pytest tests/unit -q
+
+      - name: Run local DQ tests
+        run: python -m pytest tests -m "not integration" -q
+
+      - name: Compile Python sources
+        run: python -m compileall lakeflow dq src tests
+
+      - name: Validate Databricks bundle
+        if: ${{ secrets.DATABRICKS_HOST != '' && secrets.DATABRICKS_TOKEN != '' }}
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate --profile DEFAULT
