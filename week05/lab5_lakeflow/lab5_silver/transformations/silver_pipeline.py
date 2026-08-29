@@ -16,7 +16,7 @@ from pyspark.sql.window import Window
 def slv_customers_clean():
     return (
         spark.readStream
-        .table("dbr_dev.ayyuborujzade_bronze.brz_customers")
+        .table("lab5.bronze.brz_customers")
         .select(
             F.trim("customer_id").alias("customer_id"),
             F.trim("tax_id").alias("tax_id"),
@@ -68,7 +68,7 @@ def slv_customers_clean():
 def slv_sales_orders_clean():
     orders = (
         spark.read
-        .table("dbr_dev.ayyuborujzade_bronze.brz_sales_orders")
+        .table("lab5.bronze.brz_sales_orders")
         .select(
             F.col("order_number"),
             F.trim("customer_id").alias("customer_id"),

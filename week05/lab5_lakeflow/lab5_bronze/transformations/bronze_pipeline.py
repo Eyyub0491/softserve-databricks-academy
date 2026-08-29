@@ -13,17 +13,15 @@ def brz_customers():
 
     return (
         spark.readStream
-        .format("cloudFiles")
-        .option("cloudFiles.format", "csv")
+        .format("cloudFiles") \
+        .option("cloudFiles.format", "csv") \
         .option(
-            "cloudFiles.schemaLocation",
-            "/Volumes/dbr_dev/ayyuborujzade_bronze/checkpoints/customers_schema_landing_v1"
-        )
-        .option("header", "true")
-        .load(
-            "/Volumes/dbr_dev/ayyuborujzade_bronze/customer_landing/"
-        )
-        .withColumn("source", F.lit("dbr_dev/ayyuborujzade_bronze/customer_landing"))
+        "cloudFiles.schemaLocation",
+        "/Volumes/lab5/bronze/checkpoints/customers_schema_landing_v1"
+        ) \
+        .option("header", "true") \
+        .load("/Volumes/lab5/bronze/customer_landing/")
+        .withColumn("source", F.lit("lab5/bronze/customer_landing"))
         .withColumn("ingestion_timestamp", F.current_timestamp())
     )
 
