@@ -1,0 +1,10 @@
+resources:
+  jobs:
+    lab7_constraints:
+      name: lab7_constraints
+      tasks:
+        - task_key: apply_lab7_constraints
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            query:
+              query_id: ${var.query_id}

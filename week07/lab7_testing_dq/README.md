@@ -6,6 +6,15 @@ This lab adds a local test and data-quality layer around the existing Lab 5 and 
 
 The project keeps the production Lab 5 and Lab 6 pipelines untouched and validates the existing data quality around them.
 
+## Lab 7 enforcement added
+
+The project now adds the missing enforcement pieces required by Lab 7:
+
+- real Delta constraints on the Lab 7 valid output tables
+- Bronze-to-Silver reconciliation checks against the live Bronze source
+- Gold fact/dimension and aggregate reconciliation checks
+- CI validation for unit and local DQ checks
+
 ## Project structure
 
 ```text
