@@ -16,6 +16,8 @@ This repository contains my learning journey and practical assignments completed
 - Week 03: Streaming & Incremental Ingestion
 - Week 04: Silver Layer, Data Quality & Schema Evolution
 - Week 05: Declarative Pipelines / Lakeflow 
+- Week 06: Gold Layer & Business Analytics
+- Week 07: Data Quality Testing & Unit Tests
 
 ## Purpose
 
