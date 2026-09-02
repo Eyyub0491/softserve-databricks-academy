@@ -27,9 +27,10 @@ def parse_unix_timestamp(unix_ts: Optional[int]) -> Optional[datetime]:
         >>> parse_unix_timestamp(-1)
         None
     """
-    if unix_ts is None or unix_ts <= 0:
-        return None
     try:
-        return datetime.fromtimestamp(unix_ts)
-    except (ValueError, OSError, OverflowError):
+        timestamp = int(unix_ts)
+        if timestamp <= 0:
+            return None
+        return datetime.fromtimestamp(timestamp)
+    except (TypeError, ValueError, OSError, OverflowError):
         return None

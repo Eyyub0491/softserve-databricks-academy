@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from databricks.labs.dqx.check_funcs import foreign_key, is_in_range, is_not_null, is_unique
@@ -10,11 +11,7 @@ from pyspark.sql import DataFrame, SparkSession
 
 
 def build_customer_dqx_rules() -> list[Any]:
-    """Return a small DQX rule set for the silver customer table.
-
-    This intentionally mirrors the real Databricks Labs DQX pattern: each rule is a real
-    DQRowRule/DQDatasetRule instance backed by the official check functions from the library.
-    """
+    """Return DQX rules for the silver customer table."""
     return [
         DQRowRule(
             check_func=is_not_null,
@@ -76,7 +73,9 @@ def _build_engine(
     workspace_client: WorkspaceClient | None = None,
 ) -> DQEngine:
     return DQEngine(
-        workspace_client=workspace_client or WorkspaceClient(profile="DEFAULT"),
+        workspace_client=workspace_client or WorkspaceClient(
+            profile=os.environ.get("DATABRICKS_PROFILE", os.environ.get("DATABRICKS_CONFIG_PROFILE", "DEFAULT"))
+        ),
         spark=spark,
     )
 

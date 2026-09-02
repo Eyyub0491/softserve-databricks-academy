@@ -1,8 +1,4 @@
-"""Pure-Python validation helpers used by the Lab 7 Lakeflow quality rules.
-
-These functions are intentionally simple and deterministic so they can be tested locally,
-while the actual Databricks pipeline uses the same business logic in a Spark DataFrame context.
-"""
+"""Pure-Python validation helpers for the Lab 7 Lakeflow quality rules."""
 
 from __future__ import annotations
 
@@ -36,10 +32,10 @@ def customer_rule_violations(row):
         errors.append("loyalty_segment out of range")
 
     try:
-        units_purchased = int(row.get("units_purchased")) if row.get("units_purchased") is not None else None
+        units_purchased = float(row.get("units_purchased")) if row.get("units_purchased") is not None else None
     except (TypeError, ValueError):
         units_purchased = None
-    if units_purchased is not None and units_purchased < 0:
+    if units_purchased is None or units_purchased < 0:
         errors.append("units_purchased < 0")
 
     return errors

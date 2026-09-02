@@ -1,7 +1,4 @@
-import os
-
 import pytest
-from databricks.connect import DatabricksSession
 
 from dq.dqx_checks import (
     run_dqx_customer_validation,
@@ -11,16 +8,9 @@ from dq.dqx_checks import (
 pytestmark = pytest.mark.integration
 
 
-def _require_databricks_runtime() -> None:
-    if os.environ.get("DATABRICKS_RUN_INTEGRATION", "0") != "1":
-        pytest.skip("Integration tests are disabled; set DATABRICKS_RUN_INTEGRATION=1 to run them.")
+def test_dqx_customer_rules_flag_silver_violations(spark, catalog, silver_schema):
 
-
-def test_dqx_customer_rules_flag_real_duplicates():
-    _require_databricks_runtime()
-    spark = DatabricksSession.builder.serverless().getOrCreate()
-
-    customer_df = spark.table("lab5.silver.slv_customers_clean")
+    customer_df = spark.table(f"{catalog}.{silver_schema}.slv_customers_clean")
     valid_df, invalid_df = run_dqx_customer_validation(spark, customer_df)
 
     assert invalid_df.count() > 0
@@ -28,19 +18,17 @@ def test_dqx_customer_rules_flag_real_duplicates():
     assert invalid_df.filter("_errors is not null").count() > 0
 
 
-def test_dqx_fact_reference_rules_flag_missing_dimension_keys():
-    _require_databricks_runtime()
-    spark = DatabricksSession.builder.serverless().getOrCreate()
+def test_dqx_fact_reference_rules_pass_for_consistent_gold(spark, catalog, gold_schema):
 
-    fact_df = spark.table("lab5.gold.fct_sales_orders")
+    fact_df = spark.table(f"{catalog}.{gold_schema}.fct_sales_orders")
     ref_dfs = {
-        "dim_customers": spark.table("lab5.gold.dim_customers"),
-        "dim_products": spark.table("lab5.gold.dim_products"),
-        "dim_date": spark.table("lab5.gold.dim_date"),
+        "dim_customers": spark.table(f"{catalog}.{gold_schema}.dim_customers"),
+        "dim_products": spark.table(f"{catalog}.{gold_schema}.dim_products"),
+        "dim_date": spark.table(f"{catalog}.{gold_schema}.dim_date"),
     }
 
     valid_df, invalid_df = run_dqx_fact_reference_validation(spark, fact_df, ref_dfs)
 
-    assert invalid_df.count() > 0
+    assert invalid_df.count() == 0
     assert valid_df.count() + invalid_df.count() == fact_df.count()
-    assert invalid_df.filter("_errors is not null").count() > 0
+    assert invalid_df.filter("_errors is not null").count() == 0

@@ -7,21 +7,30 @@ include:
 variables:
   catalog:
     default: lab5
+  bronze_schema:
+    default: bronze
   silver_schema:
     default: silver
-  warehouse_id:
-    default: 00000000-0000-0000-0000-000000000000
-  query_id:
-    default: 00000000-0000-0000-0000-000000000000
-
+  gold_schema:
+    default: gold
 targets:
   dev:
     default: true
     workspace:
       host: https://dbc-f7231d90-d8a3.cloud.databricks.com
       profile: DEFAULT
+    variables:
+      catalog: lab5
+      bronze_schema: bronze
+      silver_schema: silver
+      gold_schema: gold
 
-  azure:
+  academy:
     workspace:
       host: https://adb-7405604503619901.1.azuredatabricks.net
-      profile: DEFAULT
+      profile: adb-7405604503619901
+    variables:
+      catalog: dbr_dev
+      bronze_schema: ayyuborujzade_bronze
+      silver_schema: ayyuborujzade_silver
+      gold_schema: ayyuborujzade_gold
