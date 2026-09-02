@@ -13,11 +13,6 @@ variables:
     default: silver
   gold_schema:
     default: gold
-  warehouse_id:
-    default: 00000000-0000-0000-0000-000000000000
-  query_id:
-    default: 00000000-0000-0000-0000-000000000000
-
 targets:
   dev:
     default: true
@@ -39,5 +34,3 @@ targets:
       bronze_schema: ayyuborujzade_bronze
       silver_schema: ayyuborujzade_silver
       gold_schema: ayyuborujzade_gold
-      warehouse_id: "3ed106620db591d9"
-      query_id: "REPLACE_WITH_ACADEMY_QUERY_ID"
