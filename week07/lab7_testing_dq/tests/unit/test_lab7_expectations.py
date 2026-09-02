@@ -28,6 +28,19 @@ def test_customer_rule_violations_flags_invalid_rows():
     assert "units_purchased < 0" in violations
 
 
+def test_customer_rule_violations_flags_invalid_units():
+    row = {
+        "customer_id": "CUST-001",
+        "state": "WA",
+        "city": "Seattle",
+        "valid_from": "1704067200",
+        "loyalty_segment": 2,
+        "units_purchased": "not-a-number",
+    }
+
+    assert "units_purchased < 0" in customer_rule_violations(row)
+
+
 def test_order_rule_violations_flags_invalid_rows():
     valid = {
         "order_number": 1001,

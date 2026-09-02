@@ -6,15 +6,6 @@ This lab adds a local test and data-quality layer around the existing Lab 5 and 
 
 The project keeps the production Lab 5 and Lab 6 pipelines untouched and validates the existing data quality around them.
 
-## Lab 7 enforcement added
-
-The project now adds the missing enforcement pieces required by Lab 7:
-
-- real Delta constraints on the Lab 7 valid output tables
-- Bronze-to-Silver reconciliation checks against the live Bronze source
-- Gold fact/dimension and aggregate reconciliation checks
-- CI validation for unit and local DQ checks
-
 ## Project structure
 
 ```text
@@ -70,7 +61,7 @@ Run the DQX integration tests with:
 
 ```bash
 cd week07/lab7_testing_dq
-DATABRICKS_RUN_INTEGRATION=1 ../.venv-connect/Scripts/python.exe -m pytest tests/integration/test_dqx_checks.py -q
+DATABRICKS_RUN_INTEGRATION=1 DATABRICKS_CLUSTER_ID=<cluster-id> DATABRICKS_PROFILE=DEFAULT ../.venv-connect/Scripts/python.exe -m pytest tests/integration/test_dqx_checks.py -q
 ```
 
 ## Lakeflow expectations
@@ -127,11 +118,13 @@ They check that:
 - quarantine rows violate at least one rule
 - quarantine rows include a non-empty `failure_reason`
 
+The freshness rule is tested deterministically in the unit suite with controlled timestamps. The Academy Bronze tables are a static lab snapshot, so integration tests check that inherited `ingestion_timestamp` provenance exists rather than applying a live freshness SLA to it.
+
 Run the Lakeflow integration checks with:
 
 ```bash
 cd week07/lab7_testing_dq
-DATABRICKS_RUN_INTEGRATION=1 ../.venv-connect/Scripts/python.exe -m pytest tests/integration/test_lab7_lakeflow_outputs.py -q
+DATABRICKS_RUN_INTEGRATION=1 DATABRICKS_CLUSTER_ID=<cluster-id> DATABRICKS_PROFILE=DEFAULT ../.venv-connect/Scripts/python.exe -m pytest tests/integration/test_lab7_lakeflow_outputs.py -q
 ```
 
 ## Local validation
@@ -155,8 +148,4 @@ databricks bundle deploy --target dev --profile DEFAULT
 
 Run the integration checks after the Lakeflow pipeline has been deployed and executed.
 
-## Notes
-
-- Lab 5 and Lab 6 production pipelines are unchanged.
-- Lab 7 adds testing and quality validation around the existing data.
-- Credentials and tokens are not stored in the repository.
+Lab 5 and Lab 6 production pipelines are unchanged. Credentials and tokens are not stored in the repository.

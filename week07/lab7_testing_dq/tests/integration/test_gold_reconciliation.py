@@ -1,19 +1,9 @@
-import os
-
 import pytest
-from databricks.connect import DatabricksSession
 
 pytestmark = pytest.mark.integration
 
 
-def _require_databricks_runtime() -> None:
-    if os.environ.get("DATABRICKS_RUN_INTEGRATION", "0") != "1":
-        pytest.skip("Integration tests are disabled; set DATABRICKS_RUN_INTEGRATION=1 to run them.")
-
-
-def test_gold_fact_dimension_and_aggregate_reconciliation(catalog, gold_schema):
-    _require_databricks_runtime()
-    spark = DatabricksSession.builder.serverless().getOrCreate()
+def test_gold_fact_dimension_and_aggregate_reconciliation(spark, catalog, gold_schema):
 
     missing_customer_keys = spark.sql(
         f"""
@@ -42,7 +32,7 @@ def test_gold_fact_dimension_and_aggregate_reconciliation(catalog, gold_schema):
     assert missing_date_keys == 0
 
     fact_revenue = spark.sql(
-        f"SELECT COALESCE(SUM(revenue), 0) AS total_revenue FROM {catalog}.{gold_schema}.fct_sales_orders"
+        f"SELECT COALESCE(SUM(line_total), 0) AS total_revenue FROM {catalog}.{gold_schema}.fct_sales_orders"
     ).collect()[0]["total_revenue"]
     daily_revenue = spark.sql(
         f"SELECT COALESCE(SUM(total_revenue), 0) AS total_revenue FROM {catalog}.{gold_schema}.agg_daily_sales"

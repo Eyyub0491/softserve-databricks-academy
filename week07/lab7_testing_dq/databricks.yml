@@ -39,5 +39,5 @@ targets:
       bronze_schema: ayyuborujzade_bronze
       silver_schema: ayyuborujzade_silver
       gold_schema: ayyuborujzade_gold
-      warehouse_id: "REPLACE_WITH_ACADEMY_WAREHOUSE_ID"
+      warehouse_id: "3ed106620db591d9"
       query_id: "REPLACE_WITH_ACADEMY_QUERY_ID"

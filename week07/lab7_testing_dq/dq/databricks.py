@@ -8,6 +8,7 @@ path that is not available in the free workspace.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from typing import Any, Optional
 
@@ -15,7 +16,7 @@ from databricks import sql
 from databricks.sdk.core import Config
 
 
-DEFAULT_PROFILE = "DEFAULT"
+DEFAULT_PROFILE = os.environ.get("DATABRICKS_PROFILE", "DEFAULT")
 
 
 def run_cli_command(command: list[str]) -> Any:

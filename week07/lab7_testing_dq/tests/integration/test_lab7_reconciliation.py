@@ -1,22 +1,9 @@
-import os
-from datetime import datetime
-
 import pytest
-from databricks.connect import DatabricksSession
-
-from dq.checks import check_freshness
 
 pytestmark = pytest.mark.integration
 
 
-def _require_databricks_runtime() -> None:
-    if os.environ.get("DATABRICKS_RUN_INTEGRATION", "0") != "1":
-        pytest.skip("Integration tests are disabled; set DATABRICKS_RUN_INTEGRATION=1 to run them.")
-
-
-def test_customer_branch_reconciliation(catalog, bronze_schema, silver_schema):
-    _require_databricks_runtime()
-    spark = DatabricksSession.builder.serverless().getOrCreate()
+def test_customer_branch_reconciliation(spark, catalog, bronze_schema, silver_schema):
 
     bronze = spark.table(f"{catalog}.{bronze_schema}.brz_customers")
     valid = spark.table(f"{catalog}.{silver_schema}.slv_customers_lab7_valid")
@@ -29,25 +16,18 @@ def test_customer_branch_reconciliation(catalog, bronze_schema, silver_schema):
         "AND state IS NOT NULL AND TRIM(CAST(state AS STRING)) <> '' "
         "AND city IS NOT NULL AND TRIM(CAST(city AS STRING)) <> '' "
         "AND valid_from IS NOT NULL AND TRIM(CAST(valid_from AS STRING)) <> '' "
-        "AND CAST(loyalty_segment AS INT) BETWEEN 0 AND 3 "
-        "AND CAST(units_purchased AS DOUBLE) >= 0"
+        "AND try_cast(loyalty_segment AS INT) BETWEEN 0 AND 3 "
+        "AND try_cast(units_purchased AS DOUBLE) IS NOT NULL "
+        "AND try_cast(units_purchased AS DOUBLE) >= 0"
     ).count() == valid.count()
 
-    latest_valid_from = spark.sql(
-        f"SELECT MAX(CAST(valid_from AS BIGINT)) AS latest_valid_from FROM {catalog}.{bronze_schema}.brz_customers"
-    ).collect()[0]["latest_valid_from"]
-    if latest_valid_from is not None:
-        freshness = check_freshness(
-            datetime.fromtimestamp(int(latest_valid_from)),
-            max_age_minutes=10080,
-            now=datetime.utcnow(),
-        )
-        assert freshness.passed is True
+    ingestion_timestamp = spark.sql(
+        f"SELECT MAX(ingestion_timestamp) AS latest_ingestion_timestamp FROM {catalog}.{bronze_schema}.brz_customers"
+    ).collect()[0]["latest_ingestion_timestamp"]
+    assert ingestion_timestamp is not None
 
 
-def test_order_branch_reconciliation(catalog, bronze_schema, silver_schema):
-    _require_databricks_runtime()
-    spark = DatabricksSession.builder.serverless().getOrCreate()
+def test_order_branch_reconciliation(spark, catalog, bronze_schema, silver_schema):
 
     bronze = spark.table(f"{catalog}.{bronze_schema}.brz_sales_orders")
     valid = spark.table(f"{catalog}.{silver_schema}.slv_sales_orders_lab7_valid")
@@ -58,6 +38,6 @@ def test_order_branch_reconciliation(catalog, bronze_schema, silver_schema):
     assert valid.filter(
         "order_number IS NOT NULL AND customer_id IS NOT NULL "
         "AND TRIM(CAST(customer_id AS STRING)) <> '' "
-        "AND CAST(number_of_line_items AS INT) > 0 "
+        "AND try_cast(number_of_line_items AS INT) > 0 "
         "AND order_datetime IS NOT NULL"
     ).count() == valid.count()

@@ -1,9 +1,4 @@
-"""Generic local data-quality checks for lab7 testing.
-
-These helpers are intentionally pure Python and deterministic so they can
-exercise DataFrame-like records or list-of-dicts before any Databricks/Spark
-execution is added.
-"""
+"""Deterministic Python data-quality checks used by Lab 7 tests."""
 
 from __future__ import annotations
 
@@ -97,7 +92,7 @@ def check_unique(
             seen[key] = key
 
     violations = []
-    for key in sorted(counts.keys(), key=lambda item: item):
+    for key in sorted(counts.keys(), key=repr):
         count = counts[key]
         if count > 1:
             violation = {
@@ -232,12 +227,7 @@ def check_reconciliation(
     actual_total: Optional[float] = None,
     expected_total: Optional[float] = None,
 ) -> DQResult:
-    """Compare counts or aggregates with a configurable tolerance.
-
-    This helper is intentionally generic. Use either count comparison or total
-    comparison depending on the use case; both can be checked in one call if
-    needed.
-    """
+    """Compare counts and/or aggregates with a configurable tolerance."""
     details: dict[str, Any] = {}
 
     if actual_count is not None and expected_count is not None:

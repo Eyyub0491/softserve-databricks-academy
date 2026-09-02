@@ -38,6 +38,10 @@ class TestParseUnixTimestamp:
     def test_none_input(self):
         """Test handling of None input."""
         assert parse_unix_timestamp(None) is None
+
+    def test_non_numeric_input(self):
+        """Test malformed source values are rejected without raising."""
+        assert parse_unix_timestamp("not-a-timestamp") is None
     
     def test_negative_timestamp(self):
         """Test handling of negative timestamp (before epoch)."""
