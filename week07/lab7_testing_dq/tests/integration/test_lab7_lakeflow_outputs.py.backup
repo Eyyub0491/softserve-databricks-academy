@@ -69,13 +69,13 @@ def _order_invalid_predicate() -> str:
     """
 
 
-def test_lab7_customer_valid_and_quarantine_branch_counts_are_consistent(catalog, bronze_schema, silver_schema):
+def test_lab7_customer_valid_and_quarantine_branch_counts_are_consistent():
     _require_databricks_runtime()
     spark = DatabricksSession.builder.serverless().getOrCreate()
 
-    bronze = spark.table(f"{catalog}.{bronze_schema}.brz_customers")
-    valid = spark.table(f"{catalog}.{silver_schema}.slv_customers_lab7_valid")
-    quarantine = spark.table(f"{catalog}.{silver_schema}.slv_customers_lab7_quarantine")
+    bronze = spark.table("lab5.bronze.brz_customers")
+    valid = spark.table("lab5.silver.slv_customers_lab7_valid")
+    quarantine = spark.table("lab5.silver.slv_customers_lab7_quarantine")
 
     assert valid.count() + quarantine.count() == bronze.count()
     assert valid.filter(_customer_valid_predicate()).count() == valid.count()
@@ -83,13 +83,13 @@ def test_lab7_customer_valid_and_quarantine_branch_counts_are_consistent(catalog
     assert quarantine.filter("failure_reason IS NOT NULL AND TRIM(failure_reason) <> ''").count() == quarantine.count()
 
 
-def test_lab7_order_valid_and_quarantine_branch_counts_are_consistent(catalog, bronze_schema, silver_schema):
+def test_lab7_order_valid_and_quarantine_branch_counts_are_consistent():
     _require_databricks_runtime()
     spark = DatabricksSession.builder.serverless().getOrCreate()
 
-    bronze = spark.table(f"{catalog}.{bronze_schema}.brz_sales_orders")
-    valid = spark.table(f"{catalog}.{silver_schema}.slv_sales_orders_lab7_valid")
-    quarantine = spark.table(f"{catalog}.{silver_schema}.slv_sales_orders_lab7_quarantine")
+    bronze = spark.table("lab5.bronze.brz_sales_orders")
+    valid = spark.table("lab5.silver.slv_sales_orders_lab7_valid")
+    quarantine = spark.table("lab5.silver.slv_sales_orders_lab7_quarantine")
 
     assert valid.count() + quarantine.count() == bronze.count()
     assert valid.filter(_order_valid_predicate()).count() == valid.count()

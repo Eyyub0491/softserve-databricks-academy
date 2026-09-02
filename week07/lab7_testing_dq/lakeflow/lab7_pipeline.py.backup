@@ -6,13 +6,6 @@ from pyspark import pipelines as dp
 from pyspark.sql import DataFrame, functions as F
 
 
-def _get_source_table(table_name: str) -> str:
-    """Build fully qualified table name from spark configuration."""
-    catalog = spark.conf.get("catalog", "lab5")
-    bronze_schema = spark.conf.get("bronze_schema", "bronze")
-    return f"{catalog}.{bronze_schema}.{table_name}"
-
-
 def _customer_failure_reason(df: DataFrame) -> DataFrame:
     return (
         df.withColumn(
@@ -92,13 +85,13 @@ def _order_failure_reason(df: DataFrame) -> DataFrame:
     "customer_id IS NOT NULL AND state IS NOT NULL AND city IS NOT NULL AND valid_from IS NOT NULL AND CAST(loyalty_segment AS INT) BETWEEN 0 AND 3 AND CAST(units_purchased AS DOUBLE) >= 0"
 )
 def slv_customers_lab7_valid():
-    return spark.read.table(_get_source_table("brz_customers"))
+    return spark.read.table("lab5.bronze.brz_customers")
 
 
 @dp.table(name="slv_customers_lab7_quarantine")
 def slv_customers_lab7_quarantine():
     return (
-        spark.read.table(_get_source_table("brz_customers"))
+        spark.read.table("lab5.bronze.brz_customers")
         .transform(_customer_failure_reason)
         .filter("failure_reason IS NOT NULL AND failure_reason != ''")
     )
@@ -110,13 +103,13 @@ def slv_customers_lab7_quarantine():
     "order_number IS NOT NULL AND customer_id IS NOT NULL AND CAST(number_of_line_items AS INT) > 0 AND order_datetime IS NOT NULL"
 )
 def slv_sales_orders_lab7_valid():
-    return spark.read.table(_get_source_table("brz_sales_orders"))
+    return spark.read.table("lab5.bronze.brz_sales_orders")
 
 
 @dp.table(name="slv_sales_orders_lab7_quarantine")
 def slv_sales_orders_lab7_quarantine():
     return (
-        spark.read.table(_get_source_table("brz_sales_orders"))
+        spark.read.table("lab5.bronze.brz_sales_orders")
         .transform(_order_failure_reason)
         .filter("failure_reason IS NOT NULL AND failure_reason != ''")
     )

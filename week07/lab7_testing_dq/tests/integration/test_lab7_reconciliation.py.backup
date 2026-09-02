@@ -14,13 +14,13 @@ def _require_databricks_runtime() -> None:
         pytest.skip("Integration tests are disabled; set DATABRICKS_RUN_INTEGRATION=1 to run them.")
 
 
-def test_customer_branch_reconciliation(catalog, bronze_schema, silver_schema):
+def test_customer_branch_reconciliation():
     _require_databricks_runtime()
     spark = DatabricksSession.builder.serverless().getOrCreate()
 
-    bronze = spark.table(f"{catalog}.{bronze_schema}.brz_customers")
-    valid = spark.table(f"{catalog}.{silver_schema}.slv_customers_lab7_valid")
-    quarantine = spark.table(f"{catalog}.{silver_schema}.slv_customers_lab7_quarantine")
+    bronze = spark.table("lab5.bronze.brz_customers")
+    valid = spark.table("lab5.silver.slv_customers_lab7_valid")
+    quarantine = spark.table("lab5.silver.slv_customers_lab7_quarantine")
 
     assert valid.count() + quarantine.count() == bronze.count()
     assert quarantine.filter("failure_reason IS NOT NULL AND TRIM(failure_reason) <> ''").count() == quarantine.count()
@@ -34,7 +34,7 @@ def test_customer_branch_reconciliation(catalog, bronze_schema, silver_schema):
     ).count() == valid.count()
 
     latest_valid_from = spark.sql(
-        f"SELECT MAX(CAST(valid_from AS BIGINT)) AS latest_valid_from FROM {catalog}.{bronze_schema}.brz_customers"
+        "SELECT MAX(CAST(valid_from AS BIGINT)) AS latest_valid_from FROM lab5.bronze.brz_customers"
     ).collect()[0]["latest_valid_from"]
     if latest_valid_from is not None:
         freshness = check_freshness(
@@ -45,13 +45,13 @@ def test_customer_branch_reconciliation(catalog, bronze_schema, silver_schema):
         assert freshness.passed is True
 
 
-def test_order_branch_reconciliation(catalog, bronze_schema, silver_schema):
+def test_order_branch_reconciliation():
     _require_databricks_runtime()
     spark = DatabricksSession.builder.serverless().getOrCreate()
 
-    bronze = spark.table(f"{catalog}.{bronze_schema}.brz_sales_orders")
-    valid = spark.table(f"{catalog}.{silver_schema}.slv_sales_orders_lab7_valid")
-    quarantine = spark.table(f"{catalog}.{silver_schema}.slv_sales_orders_lab7_quarantine")
+    bronze = spark.table("lab5.bronze.brz_sales_orders")
+    valid = spark.table("lab5.silver.slv_sales_orders_lab7_valid")
+    quarantine = spark.table("lab5.silver.slv_sales_orders_lab7_quarantine")
 
     assert valid.count() + quarantine.count() == bronze.count()
     assert quarantine.filter("failure_reason IS NOT NULL AND TRIM(failure_reason) <> ''").count() == quarantine.count()
