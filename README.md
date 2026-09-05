@@ -66,7 +66,7 @@ The project demonstrates the use of Databricks and modern data engineering pract
 
 **My contribution:** Worked on data engineering components, transformations, and project implementation together with the team.
 
-[Demo 1 Repository](<(https://github.com/Eyyub0491/ecommerce-bronze-platform)>)
+[Demo 1 Repository](<https://github.com/Eyyub0491/ecommerce-bronze-platform>)
 
 ---
 
@@ -92,7 +92,7 @@ Key technologies include:
 
 **My contribution:** Focused mainly on real-time order ingestion with Zerobus, streaming transformations, testing, data quality, and data reconciliation.
 
-[Demo 2 Repository](<(https://github.com/yanquielarango/ecommerce_pipeline_demo/tree/main/ecommerce_pipeline_demo)>)
+[Demo 2 Repository](<https://github.com/yanquielarango/ecommerce_pipeline_demo/tree/main/ecommerce_pipeline_demo>)
 
 ## Data Engineering Architecture
 
