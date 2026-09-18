@@ -4,6 +4,8 @@ bundle:
 sync:
   paths:
     - ../../week07/lab7_testing_dq
+    - ../../week05/lab5_lakeflow
+    - src
 
 include:
   - resources/*.yml
