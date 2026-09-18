@@ -1,0 +1,28 @@
+resources:
+  jobs:
+    lab8_production_orchestration:
+      name: lab8_production_orchestration
+
+      tasks:
+        - task_key: lab5_lakeflow
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lab5_lakeflow_pipeline.id}
+
+        - task_key: lab7_data_quality
+          depends_on:
+            - task_key: lab5_lakeflow
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lab7_pipeline.id}
+
+        - task_key: gold_star_schema
+          depends_on:
+            - task_key: lab7_data_quality
+          notebook_task:
+            notebook_path: ../src/gold/01_gold_star_schema.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+
+      # Keep validation execution separate until a Databricks job entry point is defined for the local pytest and integration tests.

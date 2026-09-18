@@ -1,0 +1,41 @@
+bundle:
+  name: softserve-databricks-academy
+
+sync:
+  paths:
+    - ../../week07/lab7_testing_dq
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the selected target.
+  bronze_schema:
+    description: Bronze schema for the selected target.
+  silver_schema:
+    description: Silver schema for the selected target.
+  gold_schema:
+    description: Gold schema for the selected target.
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-f7231d90-d8a3.cloud.databricks.com
+    variables:
+      catalog: lab5
+      bronze_schema: bronze
+      silver_schema: silver
+      gold_schema: gold
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-7405604503619901.1.azuredatabricks.net
+    variables:
+      catalog: dbr_dev
+      bronze_schema: ayyuborujzade_bronze
+      silver_schema: ayyuborujzade_silver
+      gold_schema: ayyuborujzade_gold

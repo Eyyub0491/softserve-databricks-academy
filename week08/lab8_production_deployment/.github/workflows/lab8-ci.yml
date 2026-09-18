@@ -1,0 +1,121 @@
+name: lab8-local-checks
+
+on:
+  push:
+    paths:
+      - "week08/lab8_production_deployment/**"
+  pull_request:
+    paths:
+      - "week08/lab8_production_deployment/**"
+
+jobs:
+  local-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install local test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r week07/lab7_testing_dq/requirements.txt
+
+      - name: Parse YAML, JSON, notebooks, and repository references
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import re
+          from pathlib import Path
+          import yaml
+
+          root = Path("week08/lab8_production_deployment")
+          resource_dir = root / "resources"
+
+          for path in root.rglob("*.yml"):
+              yaml.safe_load(path.read_text(encoding="utf-8"))
+          for path in root.rglob("*.yaml"):
+              yaml.safe_load(path.read_text(encoding="utf-8"))
+          for path in root.rglob("*.json"):
+              json.loads(path.read_text(encoding="utf-8"))
+
+          for path in root.rglob("*.ipynb"):
+              notebook = json.loads(path.read_text(encoding="utf-8"))
+              assert isinstance(notebook.get("cells"), list), path
+              for cell in notebook["cells"]:
+                  assert cell.get("cell_type") in {"code", "markdown", "raw"}, path
+                  if cell.get("cell_type") == "code":
+                      ast.parse("".join(cell.get("source", [])), filename=str(path))
+
+          pipelines = yaml.safe_load((resource_dir / "pipelines.yml").read_text(encoding="utf-8"))
+            schemas = yaml.safe_load((resource_dir / "schemas.yml").read_text(encoding="utf-8"))
+          jobs = yaml.safe_load((resource_dir / "jobs.yml").read_text(encoding="utf-8"))
+          pipeline_resources = pipelines["resources"]["pipelines"]
+            schema_resources = schemas["resources"]["schemas"]
+          orchestration = jobs["resources"]["jobs"]["lab8_production_orchestration"]
+
+            assert set(schema_resources) == {"bronze_schema", "silver_schema", "gold_schema"}
+            for schema in schema_resources.values():
+              assert schema["catalog_name"] == "${var.catalog}"
+
+          for path_value in re.findall(
+              r"path:\s*(\S+)",
+              (resource_dir / "pipelines.yml").read_text(encoding="utf-8"),
+          ):
+              assert (resource_dir / path_value).resolve().exists(), path_value
+
+          gold_notebook = root / "src/gold/01_gold_star_schema.ipynb"
+          assert gold_notebook.exists()
+
+          task_keys = [task["task_key"] for task in orchestration["tasks"]]
+          assert task_keys[:3] == ["lab5_lakeflow", "lab7_data_quality", "gold_star_schema"]
+          assert orchestration["tasks"][1]["depends_on"][0]["task_key"] == "lab5_lakeflow"
+          assert orchestration["tasks"][2]["depends_on"][0]["task_key"] == "lab7_data_quality"
+
+          job_text = (resource_dir / "jobs.yml").read_text(encoding="utf-8")
+          for resource_name in re.findall(
+              r"resources\.pipelines\.([^.]+)\.id", job_text
+          ):
+              assert resource_name in pipeline_resources, resource_name
+
+          gold_task = orchestration["tasks"][2]
+          assert gold_task["notebook_task"]["notebook_path"] == "../src/gold/01_gold_star_schema.ipynb"
+          assert set(gold_task["notebook_task"]["base_parameters"]) == {
+              "catalog",
+              "bronze_schema",
+              "silver_schema",
+              "gold_schema",
+          }
+
+          print("Lab 8 local/static checks passed")
+          PY
+
+      - name: Run existing Lab 7 local tests
+        run: python -m pytest week07/lab7_testing_dq/tests -m "not integration" -q
+
+  # Disabled until Databricks authentication and target-specific deployment configuration are available.
+  future-bundle-validation:
+    if: ${{ false }}
+    needs: local-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Future bundle validation placeholder
+        run: 'echo "Future command: databricks bundle validate --target dev"'
+      # databricks bundle validate --target dev
+
+  # Disabled until production credentials and workspace configuration are in place.
+  future-prod-deployment:
+    if: ${{ false }}
+    needs: local-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Future production deployment placeholder
+        run: 'echo "Future command: databricks bundle deploy --target prod"'
+      # databricks bundle deploy --target prod
+      # Then run and verify lab8_production_orchestration.
