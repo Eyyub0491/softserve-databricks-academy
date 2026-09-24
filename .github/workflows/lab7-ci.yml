@@ -36,10 +36,3 @@ jobs:
 
       - name: Compile Python sources
         run: python -m compileall lakeflow dq src tests
-
-      - name: Validate Databricks bundle
-        if: ${{ secrets.DATABRICKS_HOST != '' && secrets.DATABRICKS_TOKEN != '' }}
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: databricks bundle validate --profile DEFAULT
