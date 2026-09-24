@@ -109,11 +109,6 @@ jobs:
         run: |
           python -m pytest week07/lab7_testing_dq/tests/unit -q
 
-      - name: Validate Databricks bundle for dev target
-        working-directory: week08/lab8_production_deployment
-        run: |
-          databricks bundle validate --target dev
-
   lab8-prod-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: lab8-ci
@@ -144,6 +139,11 @@ jobs:
       - name: Run Lab 7 tests
         run: |
           python -m pytest week07/lab7_testing_dq/tests/unit -q
+
+      - name: Validate Databricks bundle for prod target
+        working-directory: week08/lab8_production_deployment
+        run: |
+          databricks bundle validate --target prod
 
       - name: Deploy Databricks bundle to prod target
         working-directory: week08/lab8_production_deployment
