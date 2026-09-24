@@ -3,12 +3,14 @@ name: lab8-local-checks
 on:
   pull_request:
     paths:
+      - ".github/workflows/lab8-ci.yml"
       - "week08/lab8_production_deployment/**"
       - "week07/lab7_testing_dq/**"
   push:
     branches:
       - main
     paths:
+      - ".github/workflows/lab8-ci.yml"
       - "week08/lab8_production_deployment/**"
       - "week07/lab7_testing_dq/**"
 
