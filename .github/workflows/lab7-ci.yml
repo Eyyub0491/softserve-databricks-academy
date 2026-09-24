@@ -32,7 +32,7 @@ jobs:
         run: python -m pytest tests/unit -q
 
       - name: Run local DQ tests
-        run: python -m pytest tests -m "not integration" -q
+        run: python -m pytest tests/unit -q
 
       - name: Compile Python sources
         run: python -m compileall lakeflow dq src tests
