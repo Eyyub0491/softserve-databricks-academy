@@ -105,7 +105,7 @@ jobs:
 
       - name: Run Lab 7 tests
         run: |
-          python -m pytest week07/lab7_testing_dq/tests -m "not integration" -q
+          python -m pytest week07/lab7_testing_dq/tests/unit -q
 
       - name: Validate Databricks bundle for dev target
         working-directory: week08/lab8_production_deployment
@@ -141,7 +141,7 @@ jobs:
 
       - name: Run Lab 7 tests
         run: |
-          python -m pytest week07/lab7_testing_dq/tests -m "not integration" -q
+          python -m pytest week07/lab7_testing_dq/tests/unit -q
 
       - name: Deploy Databricks bundle to prod target
         working-directory: week08/lab8_production_deployment
