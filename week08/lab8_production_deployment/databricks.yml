@@ -52,3 +52,4 @@ targets:
       bronze_schema: ayyuborujzade_bronze
       silver_schema: ayyuborujzade_silver
       gold_schema: ayyuborujzade_gold
+      warehouse_id: "3ed106620db591d9"
