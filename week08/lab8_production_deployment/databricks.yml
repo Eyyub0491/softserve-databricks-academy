@@ -3,9 +3,9 @@ bundle:
 
 sync:
   paths:
-    - ../../week07/lab7_testing_dq
     - ../../week05/lab5_lakeflow
-    - src
+    - ../../week07/lab7_testing_dq
+    - .
 
 include:
   - resources/*.yml
@@ -19,6 +19,8 @@ variables:
     description: Silver schema for the selected target.
   gold_schema:
     description: Gold schema for the selected target.
+  warehouse_id:
+    description: SQL Warehouse ID used by the Lab 8 dashboard.
 
 targets:
   dev:
@@ -26,16 +28,25 @@ targets:
     default: true
     workspace:
       host: https://dbc-f7231d90-d8a3.cloud.databricks.com
+    resources:
+      dashboards:
+        lab8_gold_business_analytics:
+          file_path: dashboards/Lab 8 - Gold Layer Business Analytics.lvdash.json
     variables:
       catalog: lab5
       bronze_schema: bronze
       silver_schema: silver
       gold_schema: gold
+      warehouse_id: "7474657415962864"
 
   prod:
     mode: production
     workspace:
       host: https://adb-7405604503619901.1.azuredatabricks.net
+    resources:
+      dashboards:
+        lab8_gold_business_analytics:
+          file_path: dashboards/Lab 8 - Gold Layer Business Analytics - PROD.lvdash.json
     variables:
       catalog: dbr_dev
       bronze_schema: ayyuborujzade_bronze

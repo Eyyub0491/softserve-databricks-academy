@@ -1,0 +1,7 @@
+resources:
+  dashboards:
+    lab8_gold_business_analytics:
+      display_name: "Lab 8 - Gold Layer Business Analytics [${bundle.target}]"
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.file_path}/dashboards
+      file_path: ../dashboards/Lab 8 - Gold Layer Business Analytics.lvdash.json

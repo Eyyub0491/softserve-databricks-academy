@@ -25,4 +25,4 @@ resources:
               silver_schema: ${var.silver_schema}
               gold_schema: ${var.gold_schema}
 
-      # Keep validation execution separate until a Databricks job entry point is defined for the local pytest and integration tests.
+      # Validation remains separate from the production job orchestration.
