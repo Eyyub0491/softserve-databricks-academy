@@ -2,6 +2,8 @@
 
 This lab brings together the Lakeflow work from Lab 5 and the testing/data-quality work from Lab 7 into a simple Databricks Asset Bundle for a dev/prod deployment flow. The main idea is to package the resources in one place, keep environment-specific values separate, and let GitHub Actions handle the production deployment path.
 
+This README is intentionally kept as the project reference for the bundle and CI flow; any change here is only to keep the Lab 8 project visible to the repo-triggered GitHub Actions workflow.
+
 ## Purpose
 
 The project keeps the Lab 5 and Lab 7 outputs in a reusable bundle and adds a Lab 8 Gold-layer workflow that can run against different workspaces. The bundle defines the catalog, schema, and dashboard settings for each target instead of hard-coding one workspace.
