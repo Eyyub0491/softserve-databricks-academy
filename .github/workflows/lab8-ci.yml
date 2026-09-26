@@ -222,14 +222,14 @@ jobs:
           # file so the CLI accepts the key, run unbind, then remove it before
           # the deploy step.  The || true makes this idempotent across CI runs.
           cat > resources/_temp_unbind.yml << 'CLEANUP_EOF'
-resources:
-  pipelines:
-    lab5_bronze_pipeline:
-      name: lab5_bronze_pipeline
-      catalog: ${var.catalog}
-      target: ${var.bronze_schema}
-      serverless: true
-CLEANUP_EOF
+          resources:
+            pipelines:
+              lab5_bronze_pipeline:
+                name: lab5_bronze_pipeline
+                catalog: ${var.catalog}
+                target: ${var.bronze_schema}
+                serverless: true
+          CLEANUP_EOF
 
           databricks bundle deployment unbind lab5_bronze_pipeline --target prod 2>&1 || true
 
