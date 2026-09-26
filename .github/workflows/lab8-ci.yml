@@ -212,6 +212,12 @@ jobs:
             fi
           }
 
+          # One-time cleanup: remove stale bundle-state association left by the
+          # failed lab5_bronze_pipeline deployment.  Unbinding does NOT delete
+          # the physical pipeline — it only removes the bundle tracking entry.
+          # The || true makes this idempotent: a no-op if already unbound.
+          databricks bundle deployment unbind lab5_bronze_pipeline --target prod || true
+
           bind_resource bronze_schema dbr_dev.ayyuborujzade_bronze
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
           bind_resource gold_schema dbr_dev.ayyuborujzade_gold
