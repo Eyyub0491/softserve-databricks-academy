@@ -145,6 +145,24 @@ jobs:
         run: |
           databricks bundle validate --target prod
 
+      - name: Bind existing Academy resources to bundle
+        working-directory: week08/lab8_production_deployment
+        run: |
+          # The prod UC schemas (dbr_dev.ayyuborujzade_bronze/silver/gold) were
+          # created in earlier labs and already contain data.  Without explicit
+          # deployment bindings DABs treats them as unmanaged and tries to
+          # recreate them — a destructive action that cannot be approved from a
+          # non-interactive CI/CD runner.  Binding tells DABs these existing
+          # resources belong to the bundle so it updates them in-place instead.
+          databricks bundle deployment bind bronze_schema dbr_dev.ayyuborujzade_bronze --target prod --auto-approve
+          databricks bundle deployment bind silver_schema dbr_dev.ayyuborujzade_silver --target prod --auto-approve
+          databricks bundle deployment bind gold_schema dbr_dev.ayyuborujzade_gold --target prod --auto-approve
+
+          # Bind existing pipelines created in earlier labs.
+          # The bind command is idempotent — it is a no-op if already bound.
+          databricks bundle deployment bind lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf --target prod --auto-approve
+          databricks bundle deployment bind lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237 --target prod --auto-approve
+
       - name: Deploy Databricks bundle to prod target
         working-directory: week08/lab8_production_deployment
         run: |
