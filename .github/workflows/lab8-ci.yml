@@ -216,8 +216,8 @@ jobs:
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
           bind_resource gold_schema dbr_dev.ayyuborujzade_gold
 
-          # Bind the existing PROD Lab 5 pipeline to the new bronze resource key.
-          bind_resource lab5_bronze_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+          # Bind the existing PROD Lab 5 pipeline to the restored resource key.
+          bind_resource lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
 
           # The lab5_silver_pipeline is a new resource — no binding needed.
           # The bundle deploy will create it on first run.
