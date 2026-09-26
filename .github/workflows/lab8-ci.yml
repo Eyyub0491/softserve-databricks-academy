@@ -215,8 +215,25 @@ jobs:
           # One-time cleanup: remove stale bundle-state association left by the
           # failed lab5_bronze_pipeline deployment.  Unbinding does NOT delete
           # the physical pipeline — it only removes the bundle tracking entry.
-          # The || true makes this idempotent: a no-op if already unbound.
-          databricks bundle deployment unbind lab5_bronze_pipeline --target prod || true
+          #
+          # `databricks bundle deployment unbind` requires the KEY to be defined
+          # in the current bundle configuration.  Since lab5_bronze_pipeline was
+          # renamed to lab5_lakeflow_pipeline, we create a temporary resource
+          # file so the CLI accepts the key, run unbind, then remove it before
+          # the deploy step.  The || true makes this idempotent across CI runs.
+          cat > resources/_temp_unbind.yml << 'CLEANUP_EOF'
+resources:
+  pipelines:
+    lab5_bronze_pipeline:
+      name: lab5_bronze_pipeline
+      catalog: ${var.catalog}
+      target: ${var.bronze_schema}
+      serverless: true
+CLEANUP_EOF
+
+          databricks bundle deployment unbind lab5_bronze_pipeline --target prod 2>&1 || true
+
+          rm -f resources/_temp_unbind.yml
 
           bind_resource bronze_schema dbr_dev.ayyuborujzade_bronze
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
