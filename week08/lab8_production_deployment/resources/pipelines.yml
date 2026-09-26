@@ -1,7 +1,7 @@
 resources:
   pipelines:
-    lab5_lakeflow_pipeline:
-      name: lab5_lakeflow_pipeline
+    lab5_bronze_pipeline:
+      name: lab5_bronze_pipeline
       catalog: ${var.catalog}
       target: ${var.bronze_schema}
       serverless: true
@@ -9,11 +9,22 @@ resources:
       configuration:
         catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
-        silver_schema: ${var.silver_schema}
 
       libraries:
         - file:
             path: ../../../week05/lab5_lakeflow/lab5_bronze/transformations/bronze_pipeline.py
+
+    lab5_silver_pipeline:
+      name: lab5_silver_pipeline
+      catalog: ${var.catalog}
+      target: ${var.silver_schema}
+      serverless: true
+
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.bronze_schema}
+
+      libraries:
         - file:
             path: ../../../week05/lab5_lakeflow/lab5_silver/transformations/silver_pipeline.py
 

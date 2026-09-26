@@ -2,6 +2,12 @@ from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
+# ---- Parameterize catalog/schema for DEV/PROD compatibility ----
+# Defaults match the original hardcoded values so DEV is unchanged.
+_catalog = spark.conf.get("catalog", "lab5")
+_bronze_schema = spark.conf.get("bronze_schema", "bronze")
+_bronze_namespace = f"{_catalog}.{_bronze_schema}"
+
 
 # ---------- Customers: streaming bronze -> streaming silver ----------
 
@@ -16,7 +22,7 @@ from pyspark.sql.window import Window
 def slv_customers_clean():
     return (
         spark.readStream
-        .table("lab5.bronze.brz_customers")
+        .table(f"{_bronze_namespace}.brz_customers")
         .select(
             F.trim("customer_id").alias("customer_id"),
             F.trim("tax_id").alias("tax_id"),
@@ -68,7 +74,7 @@ def slv_customers_clean():
 def slv_sales_orders_clean():
     orders = (
         spark.read
-        .table("lab5.bronze.brz_sales_orders")
+        .table(f"{_bronze_namespace}.brz_sales_orders")
         .select(
             F.col("order_number"),
             F.trim("customer_id").alias("customer_id"),

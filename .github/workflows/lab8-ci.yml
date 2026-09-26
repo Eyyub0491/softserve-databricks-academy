@@ -85,15 +85,16 @@ jobs:
           assert gold_notebook.exists(), gold_notebook
 
           task_keys = [task["task_key"] for task in orchestration["tasks"]]
-          assert task_keys[:3] == ["lab5_lakeflow", "lab7_data_quality", "gold_star_schema"]
-          assert orchestration["tasks"][1]["depends_on"][0]["task_key"] == "lab5_lakeflow"
-          assert orchestration["tasks"][2]["depends_on"][0]["task_key"] == "lab7_data_quality"
+          assert task_keys[:4] == ["lab5_bronze", "lab5_silver", "lab7_data_quality", "gold_star_schema"]
+          assert orchestration["tasks"][1]["depends_on"][0]["task_key"] == "lab5_bronze"
+          assert orchestration["tasks"][2]["depends_on"][0]["task_key"] == "lab5_silver"
+          assert orchestration["tasks"][3]["depends_on"][0]["task_key"] == "lab7_data_quality"
 
           job_text = (resource_dir / "jobs.yml").read_text(encoding="utf-8")
           for resource_name in re.findall(r"resources\.pipelines\.([^.]+)\.id", job_text):
               assert resource_name in pipeline_resources, resource_name
 
-          gold_task = orchestration["tasks"][2]
+          gold_task = orchestration["tasks"][3]
           assert gold_task["notebook_task"]["notebook_path"] == "../src/gold/01_gold_star_schema.ipynb"
           assert set(gold_task["notebook_task"]["base_parameters"]) == {
               "catalog",
@@ -145,6 +146,44 @@ jobs:
         run: |
           databricks bundle validate --target prod
 
+      - name: Create PROD volumes if needed
+        working-directory: week08/lab8_production_deployment
+        run: |
+          # Idempotent volume creation — CREATE VOLUME IF NOT EXISTS
+          # never recreates or overwrites existing volumes.
+          # Uses the Databricks SQL Statement Execution API via Python stdlib.
+          python - <<'PY'
+          import json, os, urllib.request
+
+          host = os.environ["DATABRICKS_HOST"]
+          token = os.environ["DATABRICKS_TOKEN"]
+          warehouse_id = "3ed106620db591d9"
+
+          catalog = "dbr_dev"
+          schema = "ayyuborujzade_bronze"
+
+          for volume in ["customer_landing", "checkpoints"]:
+              sql = f"CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.{volume}"
+              print(f"Executing: {sql}")
+              body = json.dumps({
+                  "statement": sql,
+                  "warehouse_id": warehouse_id,
+                  "wait_timeout": "30s"
+              }).encode()
+              req = urllib.request.Request(
+                  f"{host}/api/2.0/sql/statements",
+                  data=body,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json"
+                  }
+              )
+              with urllib.request.urlopen(req) as resp:
+                  result = json.loads(resp.read())
+                  state = result.get("status", {}).get("state", "unknown")
+                  print(f"  Status: {state}")
+          PY
+
       - name: Bind existing Academy resources to bundle
         working-directory: week08/lab8_production_deployment
         run: |
@@ -177,7 +216,12 @@ jobs:
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
           bind_resource gold_schema dbr_dev.ayyuborujzade_gold
 
-          bind_resource lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+          # Bind the existing PROD Lab 5 pipeline to the new bronze resource key.
+          bind_resource lab5_bronze_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+
+          # The lab5_silver_pipeline is a new resource — no binding needed.
+          # The bundle deploy will create it on first run.
+
           bind_resource lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237
 
       - name: Deploy Databricks bundle to prod target
