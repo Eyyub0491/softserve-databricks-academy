@@ -45,6 +45,11 @@ targets:
       host: https://adb-7405604503619901.1.azuredatabricks.net
       root_path: /Workspace/Users/ayyub.orujzada@softserve.academy/.bundle/${bundle.name}/${bundle.target}
     resources:
+      schemas:
+        bronze_schema:
+          storage_root: abfss://ayyuborujzade@dlspl21databricks.dfs.core.windows.net/
+        silver_schema:
+          storage_root: abfss://ayyuborujzade@dlspl21databricks.dfs.core.windows.net/
       dashboards:
         lab8_gold_business_analytics:
           file_path: dashboards/Lab 8 - Gold Layer Business Analytics - PROD.lvdash.json
