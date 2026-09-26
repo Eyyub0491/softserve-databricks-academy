@@ -154,14 +154,31 @@ jobs:
           # recreate them — a destructive action that cannot be approved from a
           # non-interactive CI/CD runner.  Binding tells DABs these existing
           # resources belong to the bundle so it updates them in-place instead.
-          databricks bundle deployment bind bronze_schema dbr_dev.ayyuborujzade_bronze --target prod --auto-approve
-          databricks bundle deployment bind silver_schema dbr_dev.ayyuborujzade_silver --target prod --auto-approve
-          databricks bundle deployment bind gold_schema dbr_dev.ayyuborujzade_gold --target prod --auto-approve
+          #
+          # The bind command returns a non-zero exit code with the message
+          # "Resource already managed" when the resource is already bound to
+          # the requested ID.  We treat that as success so the step is
+          # idempotent across CI runs.  All other errors fail the workflow.
+          bind_resource() {
+            local key="$1" rid="$2" output
+            if output=$(databricks bundle deployment bind "$key" "$rid" --target prod --auto-approve 2>&1); then
+              echo "$output"
+            else
+              if echo "$output" | grep -q "Resource already managed"; then
+                echo "$key already bound to $rid — skipping"
+              else
+                echo "$output" >&2
+                return 1
+              fi
+            fi
+          }
 
-          # Bind existing pipelines created in earlier labs.
-          # The bind command is idempotent — it is a no-op if already bound.
-          databricks bundle deployment bind lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf --target prod --auto-approve
-          databricks bundle deployment bind lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237 --target prod --auto-approve
+          bind_resource bronze_schema dbr_dev.ayyuborujzade_bronze
+          bind_resource silver_schema dbr_dev.ayyuborujzade_silver
+          bind_resource gold_schema dbr_dev.ayyuborujzade_gold
+
+          bind_resource lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+          bind_resource lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237
 
       - name: Deploy Databricks bundle to prod target
         working-directory: week08/lab8_production_deployment
