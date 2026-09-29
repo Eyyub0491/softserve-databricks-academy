@@ -231,7 +231,8 @@ jobs:
           CLEANUP_EOF
 
           databricks bundle deployment unbind lab5_bronze_pipeline --target prod 2>&1 || true
-
+          databricks bundle deployment unbind lab5_lakeflow_pipeline --target prod 2>&1 || true
+          
           rm -f resources/_temp_unbind.yml
 
           bind_resource bronze_schema dbr_dev.ayyuborujzade_bronze
