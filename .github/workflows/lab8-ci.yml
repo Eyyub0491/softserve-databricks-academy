@@ -284,7 +284,6 @@ jobs:
           CLEANUP_EOF
 
           databricks bundle deployment unbind lab5_bronze_pipeline --target prod 2>&1 || true
-          databricks bundle deployment unbind lab5_lakeflow_pipeline --target prod 2>&1 || true
 
           rm -f resources/_temp_unbind.yml
 
@@ -292,9 +291,10 @@ jobs:
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
           bind_resource gold_schema dbr_dev.ayyuborujzade_gold
 
-          bind_resource lab5_bronze_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+          bind_resource lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
           bind_resource lab5_silver_pipeline 7b65490e-eb65-49c6-ac44-7b93b5995f1f
           bind_resource lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237
+          
 
       - name: Deploy Databricks bundle to prod target
         working-directory: week08/lab8_production_deployment

@@ -1,6 +1,6 @@
 resources:
   pipelines:
-    lab5_bronze_pipeline:
+    lab5_lakeflow_pipeline:
       name: lab5_lakeflow_pipeline
       catalog: ${var.catalog}
       target: ${var.bronze_schema}

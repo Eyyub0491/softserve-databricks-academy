@@ -6,7 +6,7 @@ resources:
       tasks:
         - task_key: lab5_bronze
           pipeline_task:
-            pipeline_id: ${resources.pipelines.lab5_bronze_pipeline.id}
+            pipeline_id: ${resources.pipelines.lab5_lakeflow_pipeline.id}
 
         - task_key: lab5_silver
           depends_on:
