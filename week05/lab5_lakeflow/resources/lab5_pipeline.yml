@@ -1,0 +1,13 @@
+resources:
+  pipelines:
+    lab5_lakeflow_pipeline:
+      name: "[dev ayyub_orujzada] lab5_lakeflow_pipeline"
+      catalog: ${var.source_catalog}
+      schema: ${var.bronze_schema}
+      serverless: true
+      configuration:
+        catalog: ${var.source_catalog}
+        bronze_schema: ${var.bronze_schema}
+      libraries:
+        - file:
+            path: ../lab5_bronze/transformations/bronze_pipeline.py

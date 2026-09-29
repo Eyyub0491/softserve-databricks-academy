@@ -1,6 +1,5 @@
-<<<<<<< Updated upstream
 bundle:
-  name: softserve-databricks-academy
+  name: lab5_lakeflow
 
 include:
   - resources/*.yml
@@ -26,5 +25,3 @@ targets:
       source_catalog: dbr_dev
       bronze_schema: ayyuborujzade_bronze
       silver_schema: ayyuborujzade_silver
-=======
->>>>>>> Stashed changes
