@@ -1,12 +1,12 @@
 # Lab 8 - Production Deployment
 
-This lab brings together the Lakeflow work from Lab 5 and the testing/data-quality work from Lab 7 into a simple Databricks Asset Bundle for a dev/prod deployment flow. The main idea is to package the resources in one place, keep environment-specific values separate, and let GitHub Actions handle the production deployment path.
+Lab 8 uses Databricks Asset Bundles to deploy and orchestrate the existing Bronze, Silver, Lab 7 data-quality, and Gold components in the Academy PROD environment. GitHub Actions validates the project and deploys the production bundle on pushes to `main`.
 
 This README is intentionally kept as the project reference for the bundle and CI flow; any change here is only to keep the Lab 8 project visible to the repo-triggered GitHub Actions workflow.
 
 ## Purpose
 
-The project keeps the Lab 5 and Lab 7 outputs in a reusable bundle and adds a Lab 8 Gold-layer workflow that can run against different workspaces. The bundle defines the catalog, schema, and dashboard settings for each target instead of hard-coding one workspace.
+The bundle connects the existing Lab 5 and Lab 7 pipelines to the Lab 8 Gold notebook task. It uses target-specific catalog, schema, and dashboard settings.
 
 The structure is meant to support:
 
@@ -62,24 +62,29 @@ The bundle includes the main resources below.
 
 ### Pipelines
 
-`resources/pipelines.yml` defines:
+`resources/pipelines.yml` defines the bundle resources for:
 
-- `lab5_lakeflow_pipeline`
+- `lab5_silver_pipeline`
 - `lab7_pipeline`
 
-These point to the Lab 5 Lakeflow pipeline files and the Lab 7 Lakeflow job file.
+The Bronze task references the existing Academy pipeline directly from `resources/jobs.yml`.
 
 ### Job orchestration
 
 `resources/jobs.yml` defines `lab8_production_orchestration`.
 
-The job runs in this order:
+The production job, `lab8_production_orchestration`, runs these dependent tasks in order:
 
-1. `lab5_lakeflow`
-2. `lab7_data_quality`
-3. `gold_star_schema`
+1. Bronze — existing Academy Lab 5 Bronze pipeline (`lab5_bronze`).
+2. Silver — existing Academy Silver pipeline (`lab5_silver`), after Bronze.
+3. Lab 7 Data Quality — existing Lab 7 pipeline (`lab7_data_quality`), after Silver.
+4. Gold — notebook task (`gold_star_schema`), after the data-quality task.
 
-The final step runs the notebook `src/gold/01_gold_star_schema.ipynb` with the target catalog and schema parameters.
+The Gold task runs `src/gold/01_gold_star_schema.ipynb` with the target catalog and schema parameters.
+
+The Bronze pipeline owns the Bronze outputs, and the Silver pipeline owns the three Silver outputs. The existing Silver tables were assigned to the Silver pipeline by updating their Databricks pipeline ownership metadata; the tables were not dropped or recreated. The Lab 7 pipeline handles the data-quality layer, and the Gold notebook builds the Gold outputs.
+
+![Lab 8 production orchestration](docs/images/lab8-production-orchestration.png)
 
 ### Gold notebook
 
@@ -98,29 +103,13 @@ The two dashboard JSON files are kept because the underlying data source names a
 
 The dashboard JSON is static, so the bundle uses a target-specific dashboard file path instead of trying to parameterize the source table names inside the exported dashboard JSON. This is the safest simple approach for the current setup.
 
-## CI/CD flow
+## GitHub Actions workflow
 
-The workflow is defined in `.github/workflows/lab8-ci.yml`.
+The workflow is defined in `.github/workflows/lab8-ci.yml`. Pull requests run the local checks. A push to `main` runs the PROD deployment job after those checks pass.
 
-### Pull request flow
+The checks job checks out the repository, sets up Python, installs the Lab 7 test dependencies and PyYAML, and installs the Databricks CLI. It then validates the Lab 8 YAML and JSON files, notebook structure and Python syntax, pipeline file references, and orchestration task order. It also runs the Lab 7 unit tests.
 
-On pull requests, the workflow:
-
-- checks out the repo
-- sets up Python and installs the Lab 7 test dependencies
-- installs the Databricks CLI
-- validates YAML, JSON, and notebook structure
-- runs the non-integration Lab 7 pytest suite
-- runs `databricks bundle validate --target dev`
-
-### Main branch flow
-
-On pushes to the `main` branch, the workflow repeats the repo checks and runs `databricks bundle deploy --target prod` using GitHub Actions secrets:
-
-- `DATABRICKS_PROD_HOST`
-- `DATABRICKS_PROD_TOKEN`
-
-This is the intended production deployment path for Lab 8.
+The PROD job checks out the repository, installs the required tools, runs the project checks and tests, validates the bundle for the PROD target, binds the existing Academy resources, and deploys the PROD bundle. It uses the `DATABRICKS_PROD_HOST` and `DATABRICKS_PROD_TOKEN` GitHub secrets.
 
 ## Intended deployment flow
 
