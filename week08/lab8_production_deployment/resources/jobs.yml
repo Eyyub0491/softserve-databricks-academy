@@ -6,7 +6,7 @@ resources:
       tasks:
         - task_key: lab5_bronze
           pipeline_task:
-            pipeline_id: ${resources.pipelines.lab5_lakeflow_pipeline.id}
+            pipeline_id: 0444018d-09aa-4bfb-96b6-85108379da01
 
         - task_key: lab5_silver
           depends_on:
