@@ -5,7 +5,7 @@
       "displayName": "Daily Sales Data",
       "config": {
         "version": "1.1",
-        "source": "dbr_dev.ayyuborujade_gold.agg_daily_sales",
+        "source": "dbr_dev.ayyuborujzade_gold.agg_daily_sales",
         "dimensions": [
           {
             "name": "order_date",
@@ -37,7 +37,7 @@
       "displayName": "Customer Summary Data",
       "config": {
         "version": "1.1",
-        "source": "dbr_dev.ayyuborujade_gold.agg_customer_summary",
+        "source": "dbr_dev.ayyuborujzade_gold.agg_customer_summary",
         "dimensions": [
           {
             "name": "customer_id",
