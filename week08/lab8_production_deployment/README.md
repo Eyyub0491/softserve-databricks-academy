@@ -94,7 +94,7 @@ The Bronze pipeline owns the Bronze outputs, and the Silver pipeline owns the th
 
 `resources/dashboard.yml` registers the dashboard resource with the bundle and sets the warehouse ID and parent path. The actual dashboard file is selected from `databricks.yml` depending on the target.
 
-![Lab 8 Business Analytics Dashboard](docs/images/lab8-production-orchestration.png)
+![Lab 8 Business Analytics Dashboard](docs/images/lab8-gold-business-analytics-prod.png)
 
 ## Why there are two dashboard files
 
