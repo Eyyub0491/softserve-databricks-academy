@@ -51,51 +51,111 @@ jobs:
 
           for path in root.rglob("*.yml"):
               yaml.safe_load(path.read_text(encoding="utf-8"))
+
           for path in root.rglob("*.yaml"):
               yaml.safe_load(path.read_text(encoding="utf-8"))
+
           for path in root.rglob("*.json"):
               json.loads(path.read_text(encoding="utf-8"))
 
           for path in root.rglob("*.ipynb"):
               notebook = json.loads(path.read_text(encoding="utf-8"))
               assert isinstance(notebook.get("cells"), list), path
+
               for cell in notebook["cells"]:
                   assert cell.get("cell_type") in {"code", "markdown", "raw"}, path
-                  if cell.get("cell_type") == "code":
-                      ast.parse("".join(cell.get("source", [])), filename=str(path))
 
-          pipelines = yaml.safe_load((resource_dir / "pipelines.yml").read_text(encoding="utf-8"))
-          schemas = yaml.safe_load((resource_dir / "schemas.yml").read_text(encoding="utf-8"))
-          jobs = yaml.safe_load((resource_dir / "jobs.yml").read_text(encoding="utf-8"))
+                  if cell.get("cell_type") == "code":
+                      ast.parse(
+                          "".join(cell.get("source", [])),
+                          filename=str(path),
+                      )
+
+          pipelines = yaml.safe_load(
+              (resource_dir / "pipelines.yml").read_text(encoding="utf-8")
+          )
+
+          schemas = yaml.safe_load(
+              (resource_dir / "schemas.yml").read_text(encoding="utf-8")
+          )
+
+          jobs = yaml.safe_load(
+              (resource_dir / "jobs.yml").read_text(encoding="utf-8")
+          )
 
           pipeline_resources = pipelines["resources"]["pipelines"]
           schema_resources = schemas["resources"]["schemas"]
           orchestration = jobs["resources"]["jobs"]["lab8_production_orchestration"]
 
-          assert set(schema_resources) == {"bronze_schema", "silver_schema", "gold_schema"}
+          assert set(schema_resources) == {
+              "bronze_schema",
+              "silver_schema",
+              "gold_schema",
+          }
+
           for schema in schema_resources.values():
               assert schema["catalog_name"] == "${var.catalog}"
 
-          pipeline_text = (resource_dir / "pipelines.yml").read_text(encoding="utf-8")
+          pipeline_text = (
+              resource_dir / "pipelines.yml"
+          ).read_text(encoding="utf-8")
+
           for path_value in re.findall(r"path:\s*(\S+)", pipeline_text):
               resolved_path = (resource_dir / path_value).resolve()
-              assert resolved_path.exists(), f"Missing path: {path_value} -> {resolved_path}"
+              assert resolved_path.exists(), (
+                  f"Missing path: {path_value} -> {resolved_path}"
+              )
 
           gold_notebook = root / "src/gold/01_gold_star_schema.ipynb"
           assert gold_notebook.exists(), gold_notebook
 
-          task_keys = [task["task_key"] for task in orchestration["tasks"]]
-          assert task_keys[:3] == ["lab5_lakeflow", "lab7_data_quality", "gold_star_schema"]
-          assert orchestration["tasks"][1]["depends_on"][0]["task_key"] == "lab5_lakeflow"
-          assert orchestration["tasks"][2]["depends_on"][0]["task_key"] == "lab7_data_quality"
+          task_keys = [
+              task["task_key"]
+              for task in orchestration["tasks"]
+          ]
 
-          job_text = (resource_dir / "jobs.yml").read_text(encoding="utf-8")
-          for resource_name in re.findall(r"resources\.pipelines\.([^.]+)\.id", job_text):
+          assert task_keys[:4] == [
+              "lab5_bronze",
+              "lab5_silver",
+              "lab7_data_quality",
+              "gold_star_schema",
+          ]
+
+          assert (
+              orchestration["tasks"][1]["depends_on"][0]["task_key"]
+              == "lab5_bronze"
+          )
+
+          assert (
+              orchestration["tasks"][2]["depends_on"][0]["task_key"]
+              == "lab5_silver"
+          )
+
+          assert (
+              orchestration["tasks"][3]["depends_on"][0]["task_key"]
+              == "lab7_data_quality"
+          )
+
+          job_text = (
+              resource_dir / "jobs.yml"
+          ).read_text(encoding="utf-8")
+
+          for resource_name in re.findall(
+              r"resources\.pipelines\.([^.]+)\.id",
+              job_text,
+          ):
               assert resource_name in pipeline_resources, resource_name
 
-          gold_task = orchestration["tasks"][2]
-          assert gold_task["notebook_task"]["notebook_path"] == "../src/gold/01_gold_star_schema.ipynb"
-          assert set(gold_task["notebook_task"]["base_parameters"]) == {
+          gold_task = orchestration["tasks"][3]
+
+          assert (
+              gold_task["notebook_task"]["notebook_path"]
+              == "../src/gold/01_gold_star_schema.ipynb"
+          )
+
+          assert set(
+              gold_task["notebook_task"]["base_parameters"]
+          ) == {
               "catalog",
               "bronze_schema",
               "silver_schema",
@@ -148,11 +208,10 @@ jobs:
       - name: Create PROD volumes if needed
         working-directory: week08/lab8_production_deployment
         run: |
-          # Idempotent volume creation — CREATE VOLUME IF NOT EXISTS
-          # never recreates or overwrites existing volumes.
-          # Uses the Databricks SQL Statement Execution API via Python stdlib.
           python - <<'PY'
-          import json, os, urllib.request
+          import json
+          import os
+          import urllib.request
 
           host = os.environ["DATABRICKS_HOST"]
           token = os.environ["DATABRICKS_TOKEN"]
@@ -162,43 +221,46 @@ jobs:
           schema = "ayyuborujzade_bronze"
 
           for volume in ["customer_landing", "checkpoints"]:
-              sql = f"CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.{volume}"
+              sql = (
+                  f"CREATE VOLUME IF NOT EXISTS "
+                  f"{catalog}.{schema}.{volume}"
+              )
+
               print(f"Executing: {sql}")
+
               body = json.dumps({
                   "statement": sql,
                   "warehouse_id": warehouse_id,
-                  "wait_timeout": "30s"
+                  "wait_timeout": "30s",
               }).encode()
+
               req = urllib.request.Request(
                   f"{host}/api/2.0/sql/statements",
                   data=body,
                   headers={
                       "Authorization": f"Bearer {token}",
-                      "Content-Type": "application/json"
-                  }
+                      "Content-Type": "application/json",
+                  },
               )
+
               with urllib.request.urlopen(req) as resp:
                   result = json.loads(resp.read())
-                  state = result.get("status", {}).get("state", "unknown")
+
+                  state = result.get(
+                      "status", {}
+                  ).get("state", "unknown")
+
                   print(f"  Status: {state}")
           PY
 
       - name: Bind existing Academy resources to bundle
         working-directory: week08/lab8_production_deployment
         run: |
-          # The prod UC schemas (dbr_dev.ayyuborujzade_bronze/silver/gold) were
-          # created in earlier labs and already contain data.  Without explicit
-          # deployment bindings DABs treats them as unmanaged and tries to
-          # recreate them — a destructive action that cannot be approved from a
-          # non-interactive CI/CD runner.  Binding tells DABs these existing
-          # resources belong to the bundle so it updates them in-place instead.
-          #
-          # The bind command returns a non-zero exit code with the message
-          # "Resource already managed" when the resource is already bound to
-          # the requested ID.  We treat that as success so the step is
-          # idempotent across CI runs.  All other errors fail the workflow.
           bind_resource() {
-            local key="$1" rid="$2" output
+            local key="$1"
+            local rid="$2"
+            local output
+
             if output=$(databricks bundle deployment bind "$key" "$rid" --target prod --auto-approve 2>&1); then
               echo "$output"
             else
@@ -211,15 +273,6 @@ jobs:
             fi
           }
 
-          # One-time cleanup: remove stale bundle-state association left by the
-          # failed lab5_bronze_pipeline deployment.  Unbinding does NOT delete
-          # the physical pipeline — it only removes the bundle tracking entry.
-          #
-          # `databricks bundle deployment unbind` requires the KEY to be defined
-          # in the current bundle configuration.  Since lab5_bronze_pipeline was
-          # renamed to lab5_lakeflow_pipeline, we create a temporary resource
-          # file so the CLI accepts the key, run unbind, then remove it before
-          # the deploy step.  The || true makes this idempotent across CI runs.
           cat > resources/_temp_unbind.yml << 'CLEANUP_EOF'
           resources:
             pipelines:
@@ -231,6 +284,7 @@ jobs:
           CLEANUP_EOF
 
           databricks bundle deployment unbind lab5_bronze_pipeline --target prod 2>&1 || true
+          databricks bundle deployment unbind lab5_lakeflow_pipeline --target prod 2>&1 || true
 
           rm -f resources/_temp_unbind.yml
 
@@ -238,12 +292,8 @@ jobs:
           bind_resource silver_schema dbr_dev.ayyuborujzade_silver
           bind_resource gold_schema dbr_dev.ayyuborujzade_gold
 
-          # Bind the existing PROD Lab 5 pipeline to the restored resource key.
-          bind_resource lab5_lakeflow_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
-
-          # The lab5_silver_pipeline is a new resource — no binding needed.
-          # The bundle deploy will create it on first run.
-
+          bind_resource lab5_bronze_pipeline a491b7fb-1a3d-4a66-a33a-6b0105160ecf
+          bind_resource lab5_silver_pipeline 7b65490e-eb65-49c6-ac44-7b93b5995f1f
           bind_resource lab7_pipeline 5965cbce-cee7-4b84-a059-0815db909237
 
       - name: Deploy Databricks bundle to prod target
