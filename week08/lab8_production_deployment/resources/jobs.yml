@@ -4,19 +4,13 @@ resources:
       name: lab8_production_orchestration
 
       tasks:
-        - task_key: lab5_bronze
+        - task_key: lab5_lakeflow
           pipeline_task:
             pipeline_id: ${resources.pipelines.lab5_lakeflow_pipeline.id}
 
-        - task_key: lab5_silver
-          depends_on:
-            - task_key: lab5_bronze
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.lab5_silver_pipeline.id}
-
         - task_key: lab7_data_quality
           depends_on:
-            - task_key: lab5_silver
+            - task_key: lab5_lakeflow
           pipeline_task:
             pipeline_id: ${resources.pipelines.lab7_pipeline.id}
 
@@ -30,5 +24,3 @@ resources:
               bronze_schema: ${var.bronze_schema}
               silver_schema: ${var.silver_schema}
               gold_schema: ${var.gold_schema}
-
-      # Validation remains separate from the production job orchestration.
