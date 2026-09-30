@@ -17,7 +17,7 @@ existing orchestration job.
 2. By default, triggers the existing Lab 8 job (default id `295471224311110`) with `jobs.run_now`.
 3. With `--serverless-compute-demo`, uploads a tiny notebook that only prints a message, then submits a one-time notebook run without a cluster specification so the workspace uses managed serverless job compute.
 4. Both paths capture the run ID, poll `jobs.get_run` until terminal, print state transitions, and report SUCCESS (exit code `0`) or FAILURE (exit code `1`).
-5. The temporary notebook is deleted in `finally`, including setup and submission failures. If monitoring raises an error, the script requests run cancellation before cleanup. Databricks manages serverless compute for the run; it is not a persistent user-created cluster.
+5. In `finally`, the temporary notebook is deleted first. The script then attempts a non-recursive delete of the user's `.lab9` directory, which succeeds only if it is empty. Directory deletion errors (including a non-empty directory or unsupported operation) are logged and ignored. If monitoring raises an error, the script requests run cancellation before cleanup. Databricks manages serverless compute for the run; it is not a persistent user-created cluster.
 
 The demo uses `jobs.submit`, which creates a one-time run rather than a saved
 Jobs resource. There is no persistent job definition for the script to delete;

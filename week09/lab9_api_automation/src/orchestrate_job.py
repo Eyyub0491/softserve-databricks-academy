@@ -130,10 +130,11 @@ def run_serverless_compute_demo(
 ) -> RunOutcome:
     """Submit a notebook-only run so Databricks uses managed serverless compute."""
     user = client.current_user.me().user_name
-    notebook_path = f"/Users/{user}/.lab9/serverless_compute_demo_{uuid.uuid4().hex}.py"
+    lab9_dir = f"/Users/{user}/.lab9"
+    notebook_path = f"{lab9_dir}/serverless_compute_demo_{uuid.uuid4().hex}.py"
     run_id = None
     try:
-        client.workspace.mkdirs(path=f"/Users/{user}/.lab9")
+        client.workspace.mkdirs(path=lab9_dir)
         client.workspace.import_(
             path=notebook_path,
             format=ImportFormat.SOURCE,
@@ -162,6 +163,13 @@ def run_serverless_compute_demo(
             raise
     finally:
         client.workspace.delete(path=notebook_path)
+        try:
+            client.workspace.delete(path=lab9_dir, recursive=False)
+        except Exception as cleanup_error:  # noqa: BLE001 - safe if non-empty or unsupported
+            print(
+                f"Could not remove empty Lab 9 directory {lab9_dir}: {cleanup_error}",
+                file=sys.stderr,
+            )
 
 
 def main(argv: Optional[list[str]] = None) -> int:

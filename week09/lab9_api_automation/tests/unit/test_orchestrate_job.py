@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -121,7 +121,10 @@ def test_serverless_compute_demo_submits_and_cleans_up_notebook():
     notebook_path = task.notebook_task.notebook_path
     assert notebook_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
     assert notebook_path.endswith(".py")
-    client.workspace.delete.assert_called_once_with(path=notebook_path)
+    assert client.workspace.delete.call_args_list == [
+        call(path=notebook_path),
+        call(path="/Users/learner@example.com/.lab9", recursive=False),
+    ]
 
 
 def test_serverless_compute_demo_cleans_up_if_submission_fails():
@@ -132,9 +135,12 @@ def test_serverless_compute_demo_cleans_up_if_submission_fails():
     with pytest.raises(RuntimeError, match="submit failed"):
         oj.run_serverless_compute_demo(client)
 
-    deleted_path = client.workspace.delete.call_args.kwargs["path"]
+    deleted_path = client.workspace.delete.call_args_list[0].kwargs["path"]
     assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
     assert deleted_path.endswith(".py")
+    assert client.workspace.delete.call_args_list[1] == call(
+        path="/Users/learner@example.com/.lab9", recursive=False
+    )
 
 
 def test_serverless_compute_demo_cleans_up_if_notebook_import_fails():
@@ -145,9 +151,12 @@ def test_serverless_compute_demo_cleans_up_if_notebook_import_fails():
     with pytest.raises(RuntimeError, match="import failed"):
         oj.run_serverless_compute_demo(client)
 
-    deleted_path = client.workspace.delete.call_args.kwargs["path"]
+    deleted_path = client.workspace.delete.call_args_list[0].kwargs["path"]
     assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
     assert deleted_path.endswith(".py")
+    assert client.workspace.delete.call_args_list[1] == call(
+        path="/Users/learner@example.com/.lab9", recursive=False
+    )
 
 
 def test_serverless_compute_demo_cancels_run_if_monitoring_raises():
@@ -160,7 +169,7 @@ def test_serverless_compute_demo_cancels_run_if_monitoring_raises():
         oj.run_serverless_compute_demo(client)
 
     client.jobs.cancel_run.assert_called_once_with(run_id=5678)
-    client.workspace.delete.assert_called_once()
+    assert client.workspace.delete.call_count == 2
 
 
 def test_serverless_compute_demo_returns_terminal_failure_without_cancel():
@@ -174,4 +183,21 @@ def test_serverless_compute_demo_returns_terminal_failure_without_cancel():
     assert outcome.run_id == 6789
     assert not outcome.is_success
     client.jobs.cancel_run.assert_not_called()
-    client.workspace.delete.assert_called_once()
+    assert client.workspace.delete.call_count == 2
+
+
+def test_serverless_compute_demo_ignores_nonempty_directory_cleanup_failure(capsys):
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.jobs.submit.return_value.run_id = 7890
+    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "SUCCESS"))
+    client.workspace.delete.side_effect = [None, RuntimeError("directory not empty")]
+
+    outcome = oj.run_serverless_compute_demo(client, poll_interval=0)
+
+    assert outcome.is_success
+    assert client.workspace.delete.call_count == 2
+    assert client.workspace.delete.call_args_list[1] == call(
+        path="/Users/learner@example.com/.lab9", recursive=False
+    )
+    assert "directory not empty" in capsys.readouterr().err
