@@ -11,6 +11,7 @@ This repository contains my work and projects completed during the **SoftServe D
 - Week 05: Declarative Pipelines / Lakeflow 
 - Week 06: Gold Layer & Business Analytics
 - Week 07: Data Quality Testing & Unit Tests
+- Week 08: Production Deployment, Orchestration & CI/CD
 
 ## Technologies & Tools
 
@@ -34,6 +35,8 @@ This repository contains my work and projects completed during the **SoftServe D
 - Databricks Asset Bundles
 - Databricks REST API
 - Power BI
+- Production orchestration
+- GitHub Actions
 
 ## Academy Labs
 
@@ -55,6 +58,13 @@ The Academy covered practical Data Engineering workflows using Databricks and Az
 - Lakehouse Federation and CDC
 - Zerobus Ingest
 - Analytics and Power BI
+- Production deployment and orchestration
+- DEV → PROD deployment with Databricks Asset Bundles
+- GitHub Actions CI/CD workflow
+- Pipeline dependencies and end-to-end orchestration
+- Production dashboard deployment
+- Validation and deployment of Databricks resources
+
 
 ## Demo Projects
 
