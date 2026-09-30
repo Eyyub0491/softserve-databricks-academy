@@ -1,0 +1,70 @@
+name: lab9-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/lab9-ci.yml"
+      - "week09/**"
+  pull_request:
+    paths:
+      - ".github/workflows/lab9-ci.yml"
+      - "week09/**"
+  workflow_dispatch:
+    inputs:
+      run-real-job:
+        description: "Trigger the real Lab 8 job in the Free workspace (requires Free-workspace secrets)"
+        type: boolean
+        default: false
+
+jobs:
+  static-and-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: week09/lab9_api_automation
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: python -m pytest tests -q
+
+      - name: Compile Python sources
+        run: python -m compileall src tests
+
+  trigger-free-workspace:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run-real-job == 'true'
+    needs: static-and-unit
+    runs-on: ubuntu-latest
+    environment: free-workspace
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_FREE_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_FREE_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "databricks-sdk>=0.30.0"
+
+      - name: Trigger and monitor Lab 8 orchestration job
+        working-directory: week09/lab9_api_automation
+        run: python src/orchestrate_job.py --poll-interval 30 --timeout 1800

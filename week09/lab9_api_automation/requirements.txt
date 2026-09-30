@@ -1,0 +1,6 @@
+# Lab 9 - Databricks REST API Automation - Requirements
+# databricks-sdk is the only runtime dependency (already used by Lab 7).
+databricks-sdk>=0.30.0
+
+# Test dependencies
+pytest>=7.4.0
