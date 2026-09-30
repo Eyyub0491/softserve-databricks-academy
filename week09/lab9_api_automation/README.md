@@ -65,6 +65,25 @@ SUCCESS: run <run_id> finished with result_state=SUCCESS
 On failure the final line becomes `FAILURE: run <run_id> ended with ...` and the
 process exits with code `1`.
 
+## Real Free-workspace end-to-end test
+
+The automation completed a real end-to-end run in the Free Databricks
+workspace. Job `295471224311110` produced run `23448784315770`; its lifecycle
+transitioned from `RUNNING` to `TERMINATED` with final result `SUCCESS`. The
+automation exited with code `0`.
+
+No Databricks resources were created, modified, deleted, or deployed during
+this run. The Academy/paid workspace was not used.
+
+### Notebook authentication note
+
+Subprocess execution started from a Databricks notebook did not inherit the
+notebook's IPython authentication context, so `WorkspaceClient()` in that
+subprocess could not rely on the notebook-native credentials. The same
+automation logic worked successfully when `WorkspaceClient()` was created
+directly in the notebook kernel. The standalone script remains intended for
+local or CI execution with its normal environment or CLI-profile credentials.
+
 ## Tests
 
 Unit tests mock the SDK client and never touch a real workspace:
@@ -92,3 +111,7 @@ modify the existing Academy PROD deployment.
 - Triggers an existing pipeline/job programmatically and monitors job status.
 - Reports status end-to-end with correct exit codes.
 - Integrates with CI/CD via a dedicated, manually-triggered workflow for the Free workspace.
+
+The real Free-workspace result above verifies the end-to-end behavior. The
+workflow's real-job path is opt-in via manual dispatch and uses only the
+Free-workspace environment secrets.
