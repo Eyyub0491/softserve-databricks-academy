@@ -12,8 +12,8 @@ on:
       - "week09/**"
   workflow_dispatch:
     inputs:
-      run-real-job:
-        description: "Trigger the real Lab 8 job in the Free workspace (requires Free-workspace secrets)"
+      run-serverless-demo:
+        description: "Run the serverless compute demo in the Free workspace (requires Free-workspace secrets)"
         type: boolean
         default: false
 
@@ -44,7 +44,7 @@ jobs:
         run: python -m compileall src tests
 
   trigger-free-workspace:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run-real-job == 'true'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run-serverless-demo == 'true'
     needs: static-and-unit
     runs-on: ubuntu-latest
     environment: free-workspace
@@ -65,6 +65,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install "databricks-sdk>=0.30.0"
 
-      - name: Trigger and monitor Lab 8 orchestration job
+      - name: Submit demo notebook to serverless job compute
         working-directory: week09/lab9_api_automation
-        run: python src/orchestrate_job.py --poll-interval 30 --timeout 1800
+        run: python src/orchestrate_job.py --serverless-compute-demo --poll-interval 30 --timeout 1800

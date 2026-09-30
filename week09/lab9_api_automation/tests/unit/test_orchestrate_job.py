@@ -101,3 +101,77 @@ def test_main_handles_trigger_error(monkeypatch, capsys):
     monkeypatch.setattr(oj, "WorkspaceClient", lambda: client)
     rc = oj.main(["--job-id", "1", "--poll-interval", "0"])
     assert rc == 1
+
+
+def test_serverless_compute_demo_submits_and_cleans_up_notebook():
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.jobs.submit.return_value.run_id = 9876
+    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "SUCCESS"))
+
+    outcome = oj.run_serverless_compute_demo(
+        client,
+        poll_interval=0,
+    )
+
+    assert outcome.run_id == 9876
+    assert outcome.is_success
+    task = client.jobs.submit.call_args.kwargs["tasks"][0]
+    assert task.new_cluster is None
+    notebook_path = task.notebook_task.notebook_path
+    assert notebook_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
+    assert notebook_path.endswith(".py")
+    client.workspace.delete.assert_called_once_with(path=notebook_path)
+
+
+def test_serverless_compute_demo_cleans_up_if_submission_fails():
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.jobs.submit.side_effect = RuntimeError("submit failed")
+
+    with pytest.raises(RuntimeError, match="submit failed"):
+        oj.run_serverless_compute_demo(client)
+
+    deleted_path = client.workspace.delete.call_args.kwargs["path"]
+    assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
+    assert deleted_path.endswith(".py")
+
+
+def test_serverless_compute_demo_cleans_up_if_notebook_import_fails():
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.workspace.import_.side_effect = RuntimeError("import failed")
+
+    with pytest.raises(RuntimeError, match="import failed"):
+        oj.run_serverless_compute_demo(client)
+
+    deleted_path = client.workspace.delete.call_args.kwargs["path"]
+    assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
+    assert deleted_path.endswith(".py")
+
+
+def test_serverless_compute_demo_cancels_run_if_monitoring_raises():
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.jobs.submit.return_value.run_id = 5678
+    client.jobs.get_run.side_effect = RuntimeError("poll failed")
+
+    with pytest.raises(RuntimeError, match="poll failed"):
+        oj.run_serverless_compute_demo(client)
+
+    client.jobs.cancel_run.assert_called_once_with(run_id=5678)
+    client.workspace.delete.assert_called_once()
+
+
+def test_serverless_compute_demo_returns_terminal_failure_without_cancel():
+    client = MagicMock()
+    client.current_user.me.return_value.user_name = "learner@example.com"
+    client.jobs.submit.return_value.run_id = 6789
+    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "FAILED"))
+
+    outcome = oj.run_serverless_compute_demo(client, poll_interval=0)
+
+    assert outcome.run_id == 6789
+    assert not outcome.is_success
+    client.jobs.cancel_run.assert_not_called()
+    client.workspace.delete.assert_called_once()
