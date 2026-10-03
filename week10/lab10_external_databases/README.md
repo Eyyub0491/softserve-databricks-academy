@@ -1,9 +1,7 @@
 # Lab 10 — External Operational Databases
 
 This lab demonstrates Lakehouse Federation to PostgreSQL through Neon and
-incremental change processing with Delta Change Data Feed (CDF). The work was
-validated in the Databricks Free/DEV workspace; no Academy workspace or
-credentials are part of these artifacts.
+incremental change processing with Delta Change Data Feed (CDF).
 
 ## Lakehouse Federation
 
