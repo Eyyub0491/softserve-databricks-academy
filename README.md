@@ -4,14 +4,17 @@ This repository contains my work and projects completed during the **SoftServe D
 
 ## Structure
 
-- Week 01: Databricks fundamentals and development setup
-- Week 02: Azure Services & Shared Lakehouse setup
+- Week 01: Databricks Fundamentals & Development Setup
+- Week 02: Azure Services & Shared Lakehouse Setup
 - Week 03: Streaming & Incremental Ingestion
 - Week 04: Silver Layer, Data Quality & Schema Evolution
-- Week 05: Declarative Pipelines / Lakeflow 
+- Week 05: Declarative Pipelines / Lakeflow
 - Week 06: Gold Layer & Business Analytics
 - Week 07: Data Quality Testing & Unit Tests
 - Week 08: Production Deployment, Orchestration & CI/CD
+- Week 09: Databricks REST API Automation
+- Week 10: Lakehouse Federation & Change Data Capture (CDC)
+- Week 11: Zerobus Ingest & Zero-Bus Streaming
 
 ## Technologies & Tools
 
@@ -23,7 +26,7 @@ This repository contains my work and projects completed during the **SoftServe D
 - Unity Catalog
 - Medallion Architecture
 - Auto Loader
-- Lakeflow
+- Lakeflow Declarative Pipelines
 - Zerobus Ingest
 - ETL / ELT
 - Data Quality & Testing
@@ -34,8 +37,10 @@ This repository contains my work and projects completed during the **SoftServe D
 - CI/CD
 - Databricks Asset Bundles
 - Databricks REST API
+- Databricks SDK
+- OAuth / Service Principals
 - Power BI
-- Production orchestration
+- Production Orchestration
 - GitHub Actions
 
 ## Academy Labs
@@ -54,13 +59,16 @@ The Academy covered practical Data Engineering workflows using Databricks and Az
 - DQX data quality checks
 - Data reconciliation
 - CI/CD and DEV → PROD deployment
-- Databricks REST API automation
+- Databricks REST API and SDK automation
+- Databricks job orchestration and monitoring
 - Lakehouse Federation and CDC
-- Zerobus Ingest
+- Zerobus Ingest and event-driven data ingestion
+- Idempotent event processing
+- Kafka-style versus zero-bus architectures
 - Analytics and Power BI
 - Production deployment and orchestration
 - DEV → PROD deployment with Databricks Asset Bundles
-- GitHub Actions CI/CD workflow
+- GitHub Actions CI/CD workflows
 - Pipeline dependencies and end-to-end orchestration
 - Production dashboard deployment
 - Validation and deployment of Databricks resources
