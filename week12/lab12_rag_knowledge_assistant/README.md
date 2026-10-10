@@ -1,76 +1,173 @@
 # Lab 12 — RAG Knowledge Assistant
 
-This project builds a local foundation for a Databricks knowledge assistant
-over a small, explicitly allowlisted set of public Python documentation pages.
-The local code includes configuration, document parsing, deterministic
-chunking, lexical in-memory retrieval, and generator-injected answer workflows.
-The offline unit tests do not fetch documents, connect to Databricks, create
-embeddings, or call AI Search or an LLM. Invoking
-`DatabricksVectorSearchRetriever.search()` with a real index client does make
-an AI Search query.
+This project is a small RAG application over an allowlist of public Python
+documentation pages. Its local unit tests use fixtures and fake SDK/Spark
+clients; they do not fetch documents, connect to Databricks, create embeddings,
+or call a model endpoint.
 
-## Local setup
+## Implemented locally
 
-Use Python 3.10 or newer. From this directory:
+- `documents.py`, `chunking.py`, and `ingestion.py` fetch and parse the
+  allowlisted pages, preserve source/section/offset metadata, and prepare table
+  rows. Fetches occur only when `run_ingestion()` is called.
+- `reconciliation.py` plans keyed upserts and stale-chunk removals.
+- `delta_writer.py` persists a plan to existing Delta tables using an injected
+  Spark session. `runtime.run_ingestion()` reads the current table snapshots,
+  plans changes, and invokes the writer. It does not create tables or an index.
+- `DatabricksVectorSearchRetriever` queries a managed-embedding Delta Sync
+  index. `DatabricksServingChatModel` calls a configured Databricks Model
+  Serving endpoint through the SDK `serving_endpoints_data_plane.query()`
+  operation. `runtime.create_runtime()`
+  wires those adapters; `Lab12Runtime.answer()` runs a RAG query.
+- `Lab12Runtime.evaluate()` runs a fixed set of `EvaluationCase`s through both
+  RAG and no-retrieval workflows and returns side-by-side results. It does not
+  write evaluation data or compute a quality score.
+
+The model adapter uses temperature `0` for comparison consistency, but model
+responses are not guaranteed to be deterministic. Each evaluation case can
+make up to two model calls (RAG and baseline), which can incur serving costs.
+Source references identify retrieved metadata; they do not establish that an
+answer is factually supported. The baseline uses the same model without context.
+
+## Offline local setup and tests
+
+Use Python 3.10 or newer. From this directory, install dependencies only if
+needed, then run:
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest -p no:cacheprovider tests/unit -q
 ```
 
-The tests use local fixtures and fake components; they do not require network
-access or Databricks credentials.
+The tests do not require network access, Databricks credentials, or a running
+workspace. The SDK adapters are tested with mocked clients.
 
-## Intended architecture
+## Databricks setup — provisioning, performed separately
 
-1. Fetch allowlisted Python documentation pages and parse normalized text with
-   title, URL, source, and section metadata.
-2. Store raw documents and deterministic chunks in Unity Catalog Delta tables.
-3. Create a Databricks AI Search (formerly Vector Search) index over chunks.
-4. Replace the local lexical retriever with workspace retrieval using top-k and
-   metadata filters.
-5. Connect an approved LLM adapter, compare RAG answers with a no-retrieval
-   baseline, and add privacy-aware evaluation logging.
+No tables, serving endpoints, or AI Search resources are provisioned by the
+Python runtime. Use a Unity Catalog-enabled workspace with the required
+serverless/AI Search availability and privileges. Confirm that the selected
+Free/DEV workspace offers those features before proceeding.
 
-The current `InMemoryRetriever` ranks by query-token overlap; it is not semantic
-search and does not use embeddings. `DatabricksVectorSearchRetriever` is an
-injected-client adapter for managed-embedding Delta Sync indexes. It issues
-ANN text queries through the locally inspected `WorkspaceClient.vector_search_indexes.query_index`
-API and maps returned rows to `DocumentChunk`. The adapter does not create an
-authenticated client. The installed local environment exposes that SDK API,
-but the SDK is not declared in `requirements.txt`; no workspace query or
-service integration has been tested. If it retrieves no matching chunk, the RAG
-workflow abstains without calling its answer generator. With context, source
-references identify retrieved document metadata; they do not prove that the
-generated answer is factually supported. The baseline calls the same generator
-with no context and returns no source references.
+1. Select an approved catalog and schema; grant the testing principal the
+   required table and AI Search permissions.
+2. Replace `<catalog>` and `<schema>` in `sql/create_tables.sql` and execute
+   the DDL once. The `document_chunks` Delta table enables legacy change data
+   feed, required by standard AI Search Delta Sync indexes unless table row
+   tracking provides CDF automatically. The raw document table does not need
+   CDF for this application.
+3. Create an AI Search standard endpoint and a **managed-embedding Delta Sync**
+   index over `document_chunks`, using `chunk_id` as the index key and
+   `chunk_text` as the embedding source. Set the index name as a three-part
+   catalog/schema/index identifier. Wait until index creation/synchronization
+   is complete. For a triggered-sync index, synchronize it after ingestion
+   before querying; a continuous-sync index updates from table changes.
+4. Create or select a chat-capable Model Serving endpoint and grant the
+   workspace principal permission to query it. This project does not provision
+   or choose a model endpoint.
+5. In a Databricks notebook or runtime, set the non-secret settings below.
+   Use the Databricks SDK's configured authentication; do not put tokens or
+   passwords in source or environment files committed to Git.
 
-`sql/create_tables.sql` contains proposed raw-document and chunk table schemas.
-Replace its catalog/schema placeholders only after a workspace target and
-permissions are explicitly selected. The SQL is not executed by local tests.
+```python
+import os
 
-`ingestion.py` prepares rows without writing them, and `reconciliation.py`
-plans row upserts and stale-chunk deletions. `delta_writer.py` applies a plan
-through an injected Spark session to existing Delta tables; it does not create
-tables or a Spark session. The writer validates fully qualified table names and
-row shapes, merges by `doc_id` and `chunk_id`, and timestamps `ingested_at`
-inside the raw-table MERGE. The Spark/Delta APIs are supplied by a Databricks
-runtime and are not project dependencies. Writer tests use a fake Spark SQL
-interface; actual Spark SQL parsing and Delta behavior have not been verified
-against a workspace.
+os.environ["LAB12_CATALOG"] = "your_catalog"
+os.environ["LAB12_SCHEMA"] = "your_schema"
+os.environ["LAB12_VECTOR_SEARCH_INDEX_NAME"] = (
+    "your_catalog.your_schema.document_chunks_index"
+)
+os.environ["LAB12_CHAT_SERVING_ENDPOINT"] = "your-chat-endpoint"
+os.environ["LAB12_RETRIEVAL_TOP_K"] = "5"
+os.environ["LAB12_CHAT_MAX_TOKENS"] = "512"
+```
 
-Each raw-table MERGE, chunk-table MERGE, and stale-chunk DELETE is a separate
-Delta transaction; the two tables are not atomic as one operation. On failure,
-`DeltaPersistenceError` reports the acknowledged completed steps. Retry the
-same plan: keyed MERGEs avoid duplicate rows, unchanged rows retain their
-persisted timestamps, and repeating a scoped DELETE is a no-op. If a driver
-loses the response after a statement committed, completion may be uncertain;
-retrying the same plan is still safe, but a run-level completion record or
-post-write reconciliation is needed to confirm the overall batch.
+The environment settings are also readable by `Lab12Config.from_env()`.
+`LAB12_CATALOG` and `LAB12_SCHEMA` name the existing target tables; the index
+and serving endpoint are separate resources. No credentials are read from
+Lab 12 environment variables.
 
-Configure `LAB12_VECTOR_SEARCH_INDEX_NAME` as a three-part index identifier and
-`LAB12_RETRIEVAL_TOP_K` for the retrieval limit when wiring the adapter. These
-settings contain no credentials. Workspace catalog/schema names, AI Search
-availability, embedding and LLM endpoints, required permissions, and costs are
-not configured or verified here. Integration dependencies and workspace tests
-remain separate from the offline unit suite.
+## Databricks execution — explicit operations
+
+Run ingestion only when you intend to fetch the public pages and write Delta
+rows. This uses outbound requests to `docs.python.org` and updates the existing
+tables; inspect the returned per-URL failures before continuing.
+
+```python
+from src.lab12_rag.runtime import run_ingestion
+
+ingestion_run = run_ingestion(spark)
+print(ingestion_run.persistence.completed_steps)
+print(ingestion_run.prepared.failures)
+```
+
+For a triggered-sync index, synchronize it now in the AI Search UI/API and wait
+for completion. No index synchronization is performed automatically by
+`run_ingestion()`.
+
+Ordinary query execution does not fetch documents or write tables:
+
+```python
+from src.lab12_rag.runtime import create_runtime
+
+assistant = create_runtime()
+result = assistant.answer("How does Python's pathlib represent paths?")
+print(result.answer)
+print(result.source_references)
+```
+
+To compare a fixed query set, run:
+
+```python
+from src.lab12_rag.evaluation import EvaluationCase
+
+comparisons = assistant.evaluate(
+    [
+        EvaluationCase(
+            case_id="pathlib-1",
+            query="How does Python's pathlib represent paths?",
+        ),
+        EvaluationCase(
+            case_id="json-1",
+            query="How do I parse JSON in Python?",
+        ),
+    ]
+)
+for comparison in comparisons:
+    print(comparison.case.case_id)
+    print("RAG:", comparison.rag.answer)
+    print("Baseline:", comparison.baseline.answer)
+```
+
+Results are returned in memory only. The evaluation is a side-by-side
+comparison, not an automatic factuality or quality judgement.
+
+## Databricks constraints and write guarantees
+
+The SQL declares `NOT NULL` fields, which Databricks enforces. It deliberately
+does not declare primary keys: Databricks documents primary and foreign keys
+as informational, not uniqueness enforcement. The writer validates duplicate
+keys in an incoming plan and checks for duplicate target keys that overlap the
+current upsert batch. Deterministic IDs and keyed MERGEs make serialized
+retries idempotent; they do not provide a database-enforced uniqueness
+constraint or protect against concurrent ingestion writers.
+
+Raw-document MERGE, chunk MERGE, and stale-chunk DELETE are independent Delta
+transactions, not an atomic two-table batch. `DeltaPersistenceError` reports
+acknowledged completed steps; after an ambiguous driver failure, retrying the
+same plan is safe for serialized execution, but inspect/reconcile table state.
+Spark SQL and Delta behavior have not been tested against a live workspace.
+
+Official references:
+
+- [Databricks constraints](https://docs.databricks.com/aws/en/tables/constraints)
+- [Change data feed](https://docs.databricks.com/aws/en/tables/features/change-data-feed)
+- [Create AI Search indexes](https://docs.databricks.com/aws/en/ai-search/create-ai-search)
+- [Query foundation model serving endpoints](https://docs.databricks.com/aws/en/machine-learning/model-serving/score-foundation-models)
+
+## Not verified
+
+No live Databricks ingestion, Delta write, AI Search retrieval/index sync, or
+model endpoint call has been performed. Workspace feature availability,
+permissions, model choice, endpoint names, costs, and actual Spark SQL/Delta
+semantics remain to be verified in the selected Free/DEV workspace.

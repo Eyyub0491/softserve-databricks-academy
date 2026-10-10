@@ -28,4 +28,5 @@ CREATE TABLE IF NOT EXISTS <catalog>.<schema>.document_chunks (
   chunk_sha256 STRING NOT NULL,
   chunked_at TIMESTAMP NOT NULL
 )
-USING DELTA;
+USING DELTA
+TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true');

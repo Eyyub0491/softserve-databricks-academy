@@ -1,2 +1,3 @@
-# Local tests only. Document parsing and fetching use the Python standard library.
+# Databricks SDK is used at runtime; tests use injected fake clients.
+databricks-sdk
 pytest>=7.4.0
