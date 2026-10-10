@@ -1,0 +1,2 @@
+# Local tests only. Document parsing and fetching use the Python standard library.
+pytest>=7.4.0
