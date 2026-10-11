@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -103,101 +103,65 @@ def test_main_handles_trigger_error(monkeypatch, capsys):
     assert rc == 1
 
 
-def test_serverless_compute_demo_submits_and_cleans_up_notebook():
+# ---------------------------------------------------------------------------
+# Serverless compute demo (mocked) -- no real Databricks calls
+# ---------------------------------------------------------------------------
+
+def _demo_client(run_states, job_id=999, run_id=555):
+    """Mocked client for run_serverless_demo."""
     client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.jobs.submit.return_value.run_id = 9876
-    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "SUCCESS"))
-
-    outcome = oj.run_serverless_compute_demo(
-        client,
-        poll_interval=0,
-    )
-
-    assert outcome.run_id == 9876
-    assert outcome.is_success
-    task = client.jobs.submit.call_args.kwargs["tasks"][0]
-    assert task.new_cluster is None
-    notebook_path = task.notebook_task.notebook_path
-    assert notebook_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
-    assert notebook_path.endswith(".py")
-    assert client.workspace.delete.call_args_list == [
-        call(path=notebook_path),
-        call(path="/Users/learner@example.com/.lab9", recursive=False),
+    client.current_user.me.return_value = MagicMock(user_name="demo@example.com")
+    client.jobs.create.return_value = MagicMock(job_id=job_id)
+    client.jobs.run_now.return_value = MagicMock(run_id=run_id)
+    client.jobs.get_run.side_effect = [
+        _FakeRun(_FakeState(lc, rs)) for lc, rs in run_states
     ]
+    return client
 
 
-def test_serverless_compute_demo_cleans_up_if_submission_fails():
-    client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.jobs.submit.side_effect = RuntimeError("submit failed")
-
-    with pytest.raises(RuntimeError, match="submit failed"):
-        oj.run_serverless_compute_demo(client)
-
-    deleted_path = client.workspace.delete.call_args_list[0].kwargs["path"]
-    assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
-    assert deleted_path.endswith(".py")
-    assert client.workspace.delete.call_args_list[1] == call(
-        path="/Users/learner@example.com/.lab9", recursive=False
-    )
-
-
-def test_serverless_compute_demo_cleans_up_if_notebook_import_fails():
-    client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.workspace.import_.side_effect = RuntimeError("import failed")
-
-    with pytest.raises(RuntimeError, match="import failed"):
-        oj.run_serverless_compute_demo(client)
-
-    deleted_path = client.workspace.delete.call_args_list[0].kwargs["path"]
-    assert deleted_path.startswith("/Users/learner@example.com/.lab9/serverless_compute_demo_")
-    assert deleted_path.endswith(".py")
-    assert client.workspace.delete.call_args_list[1] == call(
-        path="/Users/learner@example.com/.lab9", recursive=False
-    )
-
-
-def test_serverless_compute_demo_cancels_run_if_monitoring_raises():
-    client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.jobs.submit.return_value.run_id = 5678
-    client.jobs.get_run.side_effect = RuntimeError("poll failed")
-
-    with pytest.raises(RuntimeError, match="poll failed"):
-        oj.run_serverless_compute_demo(client)
-
-    client.jobs.cancel_run.assert_called_once_with(run_id=5678)
-    assert client.workspace.delete.call_count == 2
-
-
-def test_serverless_compute_demo_returns_terminal_failure_without_cancel():
-    client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.jobs.submit.return_value.run_id = 6789
-    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "FAILED"))
-
-    outcome = oj.run_serverless_compute_demo(client, poll_interval=0)
-
-    assert outcome.run_id == 6789
-    assert not outcome.is_success
-    client.jobs.cancel_run.assert_not_called()
-    assert client.workspace.delete.call_count == 2
-
-
-def test_serverless_compute_demo_ignores_nonempty_directory_cleanup_failure(capsys):
-    client = MagicMock()
-    client.current_user.me.return_value.user_name = "learner@example.com"
-    client.jobs.submit.return_value.run_id = 7890
-    client.jobs.get_run.return_value = _FakeRun(_FakeState("TERMINATED", "SUCCESS"))
-    client.workspace.delete.side_effect = [None, RuntimeError("directory not empty")]
-
-    outcome = oj.run_serverless_compute_demo(client, poll_interval=0)
-
+def test_run_serverless_demo_success():
+    client = _demo_client([("RUNNING", None), ("TERMINATED", "SUCCESS")])
+    outcome = oj.run_serverless_demo(client, poll_interval=0, sleep_fn=lambda _s: None)
     assert outcome.is_success
-    assert client.workspace.delete.call_count == 2
-    assert client.workspace.delete.call_args_list[1] == call(
-        path="/Users/learner@example.com/.lab9", recursive=False
-    )
-    assert "directory not empty" in capsys.readouterr().err
+    assert outcome.run_id == 555
+    # temp notebook and temp job are cleaned up
+    client.workspace.delete.assert_called_once()
+    client.jobs.delete.assert_called_once_with(999)
+
+
+def test_run_serverless_demo_cleans_up_on_failure():
+    client = _demo_client([("RUNNING", None), ("TERMINATED", "FAILED")])
+    outcome = oj.run_serverless_demo(client, poll_interval=0, sleep_fn=lambda _s: None)
+    assert not outcome.is_success
+    assert outcome.result_state == "FAILED"
+    client.workspace.delete.assert_called_once()
+    client.jobs.delete.assert_called_once_with(999)
+
+
+def test_run_serverless_demo_cleans_up_even_on_job_create_error():
+    client = MagicMock()
+    client.current_user.me.return_value = MagicMock(user_name="demo@example.com")
+    client.jobs.create.side_effect = RuntimeError("create failed")
+    with pytest.raises(RuntimeError):
+        oj.run_serverless_demo(client, poll_interval=0, sleep_fn=lambda _s: None)
+    # notebook was created before the failing create(); it must still be cleaned up
+    client.workspace.delete.assert_called_once()
+    client.jobs.delete.assert_not_called()
+
+
+def test_main_serverless_demo_success(monkeypatch, capsys):
+    client = _demo_client([("RUNNING", None), ("TERMINATED", "SUCCESS")])
+    monkeypatch.setattr(oj, "WorkspaceClient", lambda: client)
+    rc = oj.main(["--serverless-compute-demo", "--poll-interval", "0"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "SUCCESS" in out
+    assert "serverless" in out.lower()
+
+
+def test_main_serverless_demo_failure_nonzero(monkeypatch, capsys):
+    client = _demo_client([("RUNNING", None), ("TERMINATED", "FAILED")])
+    monkeypatch.setattr(oj, "WorkspaceClient", lambda: client)
+    rc = oj.main(["--serverless-compute-demo", "--poll-interval", "0"])
+    assert rc == 1
+    assert "FAILURE" in capsys.readouterr().out

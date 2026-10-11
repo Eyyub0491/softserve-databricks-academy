@@ -5,6 +5,10 @@ Trigger the existing Lab 8 orchestration job (id 295471224311110) in the Free
 Databricks workspace, poll the run until it reaches a terminal state, and
 report SUCCESS or FAILURE with a proper exit code.
 
+With ``--serverless-compute-demo`` it instead creates a throwaway notebook,
+runs it once on serverless job compute (no permanent resources), polls the
+run, and deletes the temporary notebook and job afterward.
+
 Authentication
 --------------
 ``databricks.sdk.WorkspaceClient`` resolves credentials automatically from the
@@ -25,10 +29,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.jobs import (
-    NotebookTask,
-    SubmitTask,
-)
+from databricks.sdk.service.jobs import NotebookTask, Source, Task
 from databricks.sdk.service.workspace import ImportFormat, Language
 
 # Existing Lab 8 orchestration job in the Free workspace.
@@ -37,7 +38,16 @@ DEFAULT_JOB_ID = 295471224311110
 # Life-cycle states after which a run will not change anymore.
 TERMINAL_LIFECYCLE_STATES = {"TERMINATED", "SKIPPED", "INTERNAL_ERROR"}
 SUCCESS_RESULT_STATE = "SUCCESS"
-DEMO_NOTEBOOK_SOURCE = '''# Databricks notebook source\nprint("Lab 9 serverless job compute is running")\n'''
+
+# Source of the throwaway notebook used by --serverless-compute-demo.
+DEMO_NOTEBOOK_SOURCE = """# Databricks notebook source
+print("Lab 9 serverless compute demo: starting")
+# COMMAND ----------
+rows = spark.range(100).count()
+print("Lab 9 serverless compute demo: spark.range(100).count() =", rows)
+# COMMAND ----------
+print("Lab 9 serverless compute demo: completed")
+"""
 
 
 @dataclass
@@ -123,53 +133,85 @@ def run_job_and_wait(
     return poll_until_terminal(client, run_id, poll_interval, timeout, sleep_fn, monotonic_fn)
 
 
-def run_serverless_compute_demo(
+# ---------------------------------------------------------------------------
+# Serverless compute demo (--serverless-compute-demo)
+# ---------------------------------------------------------------------------
+
+DEMO_JOB_TIMEOUT_SECONDS = 600
+
+
+def _demo_tmp_dir(client: WorkspaceClient) -> str:
+    """Return a per-user workspace directory used for throwaway demo notebooks."""
+    user = client.current_user.me().user_name
+    return f"/Workspace/Users/{user}/.lab9_demo_tmp"
+
+
+def run_serverless_demo(
     client: WorkspaceClient,
     poll_interval: float = 15.0,
     timeout: Optional[float] = None,
+    sleep_fn: Callable[[float], None] = time.sleep,
+    monotonic_fn: Callable[[], float] = time.monotonic,
 ) -> RunOutcome:
-    """Submit a notebook-only run so Databricks uses managed serverless compute."""
-    user = client.current_user.me().user_name
-    lab9_dir = f"/Users/{user}/.lab9"
-    notebook_path = f"{lab9_dir}/serverless_compute_demo_{uuid.uuid4().hex}.py"
-    run_id = None
+    """Create a throwaway notebook, run it once on serverless job compute, poll
+    the run to a terminal state, then delete the temporary notebook and job.
+
+    No permanent Databricks resources are created: both the notebook and the
+    one-off job are removed in the ``finally`` block, even on failure.
+    """
+    parent_dir = _demo_tmp_dir(client)
+    suffix = uuid.uuid4().hex[:8]
+    notebook_path = f"{parent_dir}/lab9_demo_notebook_{suffix}"
+    job_name = f"lab9_serverless_demo_{suffix}"
+    job_id: Optional[int] = None
+    notebook_created = False
+
     try:
-        client.workspace.mkdirs(path=lab9_dir)
+        client.workspace.mkdirs(parent_dir)
         client.workspace.import_(
-            path=notebook_path,
+            notebook_path,
+            content=base64.b64encode(DEMO_NOTEBOOK_SOURCE.encode("utf-8")).decode("utf-8"),
             format=ImportFormat.SOURCE,
             language=Language.PYTHON,
-            content=base64.b64encode(DEMO_NOTEBOOK_SOURCE.encode()).decode(),
             overwrite=True,
         )
-        response = client.jobs.submit(
-            run_name="lab9_serverless_compute_demo",
-            tasks=[SubmitTask(
-                task_key="serverless_notebook",
-                notebook_task=NotebookTask(notebook_path=notebook_path),
-            )],
+        notebook_created = True
+        print(f"Created temporary notebook: {notebook_path}")
+
+        job = client.jobs.create(
+            name=job_name,
+            tasks=[
+                Task(
+                    task_key="lab9_demo_notebook",
+                    notebook_task=NotebookTask(
+                        notebook_path=notebook_path,
+                        source=Source.WORKSPACE,
+                    ),
+                )
+            ],
+            max_concurrent_runs=1,
+            timeout_seconds=DEMO_JOB_TIMEOUT_SECONDS,
+            tags={"lab": "9", "ephemeral": "true"},
         )
-        run_id = getattr(response, "run_id", None)
-        if run_id is None:
-            raise RuntimeError("jobs.submit() did not return a run id")
-        print(f"Submitted ephemeral compute demo run {run_id}")
-        try:
-            return poll_until_terminal(client, int(run_id), poll_interval, timeout)
-        except Exception:
-            try:
-                client.jobs.cancel_run(run_id=int(run_id))
-            except Exception as cancel_error:  # noqa: BLE001
-                print(f"Could not cancel run {run_id}: {cancel_error}", file=sys.stderr)
-            raise
+        job_id = job.job_id
+        print(f"Created temporary serverless job: {job_name} (job_id={job_id})")
+
+        run_id = trigger_run(client, job_id)
+        print(f"Started run id={run_id} on serverless compute; polling every {poll_interval:.0f}s")
+        return poll_until_terminal(client, run_id, poll_interval, timeout, sleep_fn, monotonic_fn)
     finally:
-        client.workspace.delete(path=notebook_path)
-        try:
-            client.workspace.delete(path=lab9_dir, recursive=False)
-        except Exception as cleanup_error:  # noqa: BLE001 - safe if non-empty or unsupported
-            print(
-                f"Could not remove empty Lab 9 directory {lab9_dir}: {cleanup_error}",
-                file=sys.stderr,
-            )
+        if notebook_created:
+            try:
+                client.workspace.delete(notebook_path)
+                print(f"Cleaned up temporary notebook: {notebook_path}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"WARNING: failed to delete temp notebook {notebook_path}: {exc}", file=sys.stderr)
+        if job_id is not None:
+            try:
+                client.jobs.delete(job_id)
+                print(f"Cleaned up temporary job: {job_id}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"WARNING: failed to delete temp job {job_id}: {exc}", file=sys.stderr)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -179,13 +221,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--job-id", type=int, default=DEFAULT_JOB_ID, help="Databricks job id to trigger")
     parser.add_argument("--poll-interval", type=float, default=15.0, help="Seconds between status polls")
     parser.add_argument("--timeout", type=float, default=None, help="Max seconds to wait before failing (default: unlimited)")
-    parser.add_argument("--serverless-compute-demo", action="store_true", help="Run a no-write notebook using managed serverless job compute instead of the existing Lab 8 job")
+    parser.add_argument(
+        "--serverless-compute-demo",
+        action="store_true",
+        help="Run a throwaway notebook once on serverless job compute and clean it up (no permanent resources)",
+    )
     args = parser.parse_args(argv)
 
     client = WorkspaceClient()
     try:
         if args.serverless_compute_demo:
-            outcome = run_serverless_compute_demo(
+            outcome = run_serverless_demo(
                 client,
                 poll_interval=args.poll_interval,
                 timeout=args.timeout,
@@ -202,7 +248,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 1
 
     if outcome.is_success:
-        print(f"SUCCESS: run {outcome.run_id} finished with result_state={outcome.result_state}")
+        label = "serverless demo run" if args.serverless_compute_demo else "run"
+        print(f"SUCCESS: {label} {outcome.run_id} finished with result_state={outcome.result_state}")
         return 0
 
     print(

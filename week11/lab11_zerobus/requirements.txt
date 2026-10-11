@@ -1,3 +1,6 @@
-# Lab 11 Zerobus producer and local unit tests.
-databricks-zerobus-ingest-sdk>=0.3.0
+# Lab 11 - Zero-Bus Streaming with Zerobus - Requirements
+# Runtime dependency (installed in Databricks; not needed for local tests):
+#   databricks-zerobus-ingest-sdk>=1.10.0
+
+# Test dependencies
 pytest>=7.4.0
