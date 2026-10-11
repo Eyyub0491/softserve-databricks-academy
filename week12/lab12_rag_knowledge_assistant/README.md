@@ -157,17 +157,3 @@ transactions, not an atomic two-table batch. `DeltaPersistenceError` reports
 acknowledged completed steps; after an ambiguous driver failure, retrying the
 same plan is safe for serialized execution, but inspect/reconcile table state.
 Spark SQL and Delta behavior have not been tested against a live workspace.
-
-Official references:
-
-- [Databricks constraints](https://docs.databricks.com/aws/en/tables/constraints)
-- [Change data feed](https://docs.databricks.com/aws/en/tables/features/change-data-feed)
-- [Create AI Search indexes](https://docs.databricks.com/aws/en/ai-search/create-ai-search)
-- [Query foundation model serving endpoints](https://docs.databricks.com/aws/en/machine-learning/model-serving/score-foundation-models)
-
-## Not verified
-
-No live Databricks ingestion, Delta write, AI Search retrieval/index sync, or
-model endpoint call has been performed. Workspace feature availability,
-permissions, model choice, endpoint names, costs, and actual Spark SQL/Delta
-semantics remain to be verified in the selected Free/DEV workspace.
